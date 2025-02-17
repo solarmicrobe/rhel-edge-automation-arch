@@ -14,7 +14,7 @@ ansibleVM:
   activeDeadlineSeconds: 1800
 
 imageBuilderVM:
-  dataVolumeSource: pvc
+  dataVolumeSource: datasource
   labels:
     app: image-builder
     workload.template.kubevirt.io/server: "true"
