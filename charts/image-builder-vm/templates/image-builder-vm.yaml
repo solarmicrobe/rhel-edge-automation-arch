@@ -26,6 +26,7 @@ spec:
         creationTimestamp: null
         name: {{ $root_disk }}
       spec:
+        {{- if eq $.Values.imageBuilderVM.dataVolumeSource "pvc" }}
         pvc:
           accessModes:
             - ReadWriteOnce
@@ -39,6 +40,17 @@ spec:
         source:
           http:
             url: "http://nexus:8081/repository/rfe-rhel-media/rhel-{{- $.Values.rhel.version -}}-x86_64-kvm.qcow2"
+        {{- end -}}
+        {{- if eq $.Values.imageBuilderVM.dataVolumeSource "datasource" }}
+        sourceRef:
+          kind: DataSource
+          name: rhel8
+          namespace: openshift-virtualization-os-images
+        storage:
+          resources:
+            requests:
+              storage: {{ $.Values.imageBuilderVM.disk }}
+        {{- end }}
   runStrategy: Always
   template:
     metadata:
