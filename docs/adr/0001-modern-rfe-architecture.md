@@ -154,3 +154,5 @@ The reference full-stack path can remain, but it should become visibly broader t
 - Refactor ArgoCD install, AppProject, and access grants into separate concerns.
 - Remove the PVC/Nexus base-image staging path from the modern image-builder flow.
 - Inventory `BuildConfig` usage and retire or migrate each path based on the modern workflow model.
+
+The first implementation slice is tracked in [Plan 0001: ArgoCD Targeting, AppProject, and Access Separation](../plans/0001-argocd-targeting-appproject-access.md).
