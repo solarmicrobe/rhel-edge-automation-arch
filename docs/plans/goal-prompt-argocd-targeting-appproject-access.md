@@ -17,7 +17,17 @@ Working rules:
 - Do not commit generated temp manifests or secret material.
 - Keep context small: read only the docs and files needed for the active slice.
 - Prefer Helm render verification over speculative reasoning.
+- Treat local cluster integration as additive verification, not a prerequisite for every chart edit.
 - Use subagents for independent, bounded passes. Do not give subagents broad repo-wide tasks.
+
+Local integration-test environment:
+- This workstation has CRC installed, and CRC supports `openshift` and `microshift` presets.
+- Prefer the CRC `openshift` preset when validating this repo's OpenShift-specific behavior, including OpenShift GitOps/ArgoCD, OLM-installed operators, Routes, BuildConfig, Tekton, CNV/KubeVirt, and DataSources.
+- Use the CRC `microshift` preset only as a narrower smoke-test target for changes that do not depend on the full OpenShift/operator surface.
+- CRC was observed installed but not set up yet. Before cluster tests, check `crc status`; if setup is required, ask before running host-mutating commands.
+- Do not run `crc setup`, `crc start`, or preset changes without explicit user approval; they mutate `~/.crc`, local virtualization, networking, and cluster state.
+- OpenShift preset setup normally requires a pull secret path, for example `crc start --pull-secret-file <path>`.
+- If OrbStack is running, it may be used for Docker-compatible helper containers, but it does not replace CRC for OpenShift integration coverage.
 
 Implementation objective:
 Separate ArgoCD application targeting from ArgoCD installation and access control.
