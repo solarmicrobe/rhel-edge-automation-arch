@@ -13,7 +13,7 @@ spec:
     spec:
       activeDeadlineSeconds: 1200
       containers:
-        - image: image-registry.openshift-image-registry.svc:5000/rfe/ansible-rfe-runner:latest
+        - image: {{ .Values.setupJob.ansibleRunnerImage | quote }}
           env:
             - name: GIT_DIRECTORY
               value: "/tmp/git/rhel-edge-automation-arch"
@@ -33,7 +33,7 @@ spec:
               git clone -b $GIT_BRANCH $GIT_URL $GIT_DIRECTORY
               ansible-galaxy collection install -r $GIT_DIRECTORY/ansible/collections/requirements.yaml
               ansible-playbook $GIT_DIRECTORY/$ANSIBLE_PLAYBOOK
-          imagePullPolicy: Always
+          imagePullPolicy: {{ .Values.setupJob.ansibleRunnerImagePullPolicy | quote }}
           name: ansible-rfe-runner
       dnsPolicy: ClusterFirst
       restartPolicy: OnFailure

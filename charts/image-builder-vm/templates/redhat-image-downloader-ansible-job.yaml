@@ -13,7 +13,7 @@ spec:
     spec:
       activeDeadlineSeconds: {{ $.Values.imageDownloaderJob.activeDeadlineSeconds }}
       containers:
-        - image: image-registry.openshift-image-registry.svc:5000/rfe/ansible-rfe-runner:latest
+        - image: {{ .Values.ansibleRunner.image | quote }}
           env:
             - name: GIT_DIRECTORY
               value: "/tmp/git/rhel-edge-automation-arch"
@@ -37,7 +37,7 @@ spec:
             - name: redhat-portal-credentials
               mountPath: /var/secrets/redhat-portal-credentials
               readOnly: true
-          imagePullPolicy: Always
+          imagePullPolicy: {{ .Values.ansibleRunner.imagePullPolicy | quote }}
           name: ansible-rfe-runner
       volumes:
         - name: redhat-portal-credentials

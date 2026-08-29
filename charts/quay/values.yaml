@@ -28,6 +28,8 @@ quayRegistryCR:
 setupJob:
   gitRepository: https://github.com/redhat-cop/rhel-edge-automation-arch.git
   gitBranch: main
+  ansibleRunnerImage: image-registry.openshift-image-registry.svc:5000/rfe/ansible-rfe-runner:latest
+  ansibleRunnerImagePullPolicy: Always
   annotations:
     argocd.argoproj.io/hook: PostSync
     argocd.argoproj.io/hook-delete-policy: HookSucceeded

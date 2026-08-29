@@ -29,7 +29,7 @@ spec:
       description: URL Containing the Autobooting Image
   steps:
     - name: build-auto-iso-playbook
-      image: image-registry.openshift-image-registry.svc:5000/rfe/ansible-rfe-runner:latest
+      image: {{ .Values.ansibleRunner.image | quote }}
       workingDir: /workspace/workspace
       args:
         - |-

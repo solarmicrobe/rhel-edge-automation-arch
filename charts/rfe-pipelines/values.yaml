@@ -10,6 +10,9 @@ commonCR:
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
     argocd.argoproj.io/compare-options: IgnoreExtraneous
 
+ansibleRunner:
+  image: image-registry.openshift-image-registry.svc:5000/rfe/ansible-rfe-runner:latest
+
 pipelines:
   repos:
     tooling:

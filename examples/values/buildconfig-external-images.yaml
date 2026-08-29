@@ -1,0 +1,17 @@
+ansibleRunner:
+  image: registry.example.com/rfe/ansible-rfe-runner:latest
+  imagePullPolicy: IfNotPresent
+
+setupJob:
+  ansibleRunnerImage: registry.example.com/rfe/ansible-rfe-runner:latest
+  ansibleRunnerImagePullPolicy: IfNotPresent
+
+ansibleJob:
+  image: registry.example.com/rfe/ansible-rfe-runner:latest
+  imagePullPolicy: IfNotPresent
+
+buildConfig:
+  enabled: false
+
+image:
+  repository: registry.example.com/rfe/httpd-ostree:latest

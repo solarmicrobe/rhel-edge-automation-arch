@@ -13,6 +13,10 @@ ansibleVM:
     argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
   activeDeadlineSeconds: 1800
 
+ansibleRunner:
+  image: image-registry.openshift-image-registry.svc:5000/rfe/ansible-rfe-runner:latest
+  imagePullPolicy: Always
+
 imageBuilderVM:
   # Supported values:
   # - datasource: modern default; boot from an OpenShift Virtualization DataSource.

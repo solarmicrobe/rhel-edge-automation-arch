@@ -1,3 +1,5 @@
 ansibleJob:
   labels:
     run: aws-machineset-ansible-job
+  image: image-registry.openshift-image-registry.svc:5000/rfe/ansible-rfe-runner:latest
+  imagePullPolicy: Always

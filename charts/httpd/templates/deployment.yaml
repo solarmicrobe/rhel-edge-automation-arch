@@ -1,8 +1,11 @@
+{{- include "httpd.validate" . -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  {{- if .Values.buildConfig.enabled }}
   annotations:
     image.openshift.io/triggers: '[{"from":{"kind":"ImageStreamTag","name":"{{ .Values.buildConfig.output.imageStreamTagName }}","namespace":"{{- template "common.names.namespace" $ }}"},"fieldPath":"spec.template.spec.containers[?(@.name==\"httpd\")].image"}]'
+  {{- end }}
   labels:
     {{- include "common.labels.labels" . | nindent 4 }}
     {{- toYaml .Values.service.labels | nindent 4 }}
@@ -20,7 +23,7 @@ spec:
         deployment: httpd
     spec:
       containers:
-        - image: " "
+        - image: {{ ternary " " .Values.image.repository .Values.buildConfig.enabled | quote }}
           name: httpd
           ports:
             - containerPort: 8080

@@ -30,7 +30,7 @@ spec:
       description: Location where the asset is served
   steps:
     - name: upload-kickstart-playbook
-      image: image-registry.openshift-image-registry.svc:5000/rfe/ansible-rfe-runner:latest
+      image: {{ .Values.ansibleRunner.image | quote }}
       workingDir: /workspace/workspace
       args:
         - |-

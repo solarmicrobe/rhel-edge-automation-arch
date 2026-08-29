@@ -4,7 +4,12 @@ service:
     app.kubernetes.io/component: httpd
     app.kubernetes.io/instance: httpd
 
+image:
+  # Used when buildConfig.enabled=false.
+  repository: ""
+
 buildConfig:
+  enabled: true
   name: httpd-ostree
   strategy:
     dockerStrategyFrom:

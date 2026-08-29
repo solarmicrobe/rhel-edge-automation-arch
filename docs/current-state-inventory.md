@@ -71,8 +71,8 @@ Those layers are currently coupled through the example values file. The default 
 
 | Workflow | Current implementation | Produced or consumed artifact | Modernization concern |
 | --- | --- | --- | --- |
-| Build ansible runner image | `charts/ansible-rfe-runner` renders a `BuildConfig` and `ImageStream`. | Internal `ansible-rfe-runner:latest` image consumed by jobs and pipeline tasks. | This is a remaining build path. It should be inventoried before replacement; it may become a prebuilt image, a Pipeline build, or an external dependency. |
-| Build HTTPD OSTree image | `charts/httpd` renders a `BuildConfig`, `ImageStream`, Deployment, PVC, Service, and Route. | HTTPD image with OSTree support for serving content. | This may be obsolete, replaceable by a standard image, or still needed for content serving. Do not translate directly to Pipeline until the need is confirmed. |
+| Build ansible runner image | `charts/ansible-rfe-runner` renders `BuildConfig/ansible-rfe-runner` and `ImageStream/ansible-rfe-runner`. | Jobs and Pipeline tasks consume the resulting `ansible-rfe-runner:latest` image, now through per-chart image override values. | Plan 0003 keeps the producer as reference/bootstrap behavior and externalizes downstream consumers; future lifecycle work can replace the producer with a pinned prebuilt image or Tekton build. |
+| Build HTTPD OSTree image | `charts/httpd` renders `BuildConfig/httpd-ostree`, `ImageStream/httpd-ostree`, Deployment, PVC, Service, and Route by default. | The shared HTTPD pod serves staged artifacts; `oci-publish-content` also runs `ostree` inside that pod. The chart can now render without its BuildConfig when an external HTTPD image is supplied. | Plan 0003 retains the custom OSTree-capable build by default and defers deeper artifact publication redesign to the endpoint slice. |
 | Configure image-builder VM | `charts/image-builder-vm/templates/image-builder-vm-ansible-job.yaml` runs Ansible against VM instances. | Configured Image Builder VM capable of composing artifacts. | Retained for the first modernization pass. The VM should boot from an OpenShift Virtualization `DataSource`; dependencies and credentials need mode-aware validation. |
 | Download base RHEL image | `charts/image-builder-vm/templates/redhat-image-downloader-ansible-job.yaml` runs `ansible/playbooks/redhat-image-downloader.yaml`. | Base qcow2 uploaded to Nexus repository `rfe-rhel-media`. | Conflicts with the DataSource-only target. Current custom branch defaults to `datasource`, but this job renders when `dataVolumeSource` is not `pvc`; that should be corrected or removed. |
 | Compose RFE OCI image | `rfe-oci-image-pipeline` clones tooling and blueprints, creates a Quay repository, builds via Image Builder, and pushes the result. | OCI image path, tags, Image Builder commit ID. | Core workflow, but assumes Quay setup secret, internal runner image, cluster `git-clone` ClusterTask, and SSH access to the VM. |
@@ -114,9 +114,12 @@ These are proposed slices, not implementation approval.
    - Add DataSource connection values and render-time validation.
 
 4. Inventory and retire BuildConfigs before migration.
-   - Decide whether `ansible-rfe-runner` should be prebuilt, externally supplied, or built by Tekton.
-   - Decide whether the HTTPD OSTree image still needs custom build behavior.
-   - Migrate only surviving build needs to Pipelines.
+   - Plan 0003 inventoried the two remaining source-defined BuildConfigs.
+   - `ansible-rfe-runner` consumers now accept an externally supplied image while preserving the current internal image
+     default.
+   - HTTPD now accepts an externally supplied image when `buildConfig.enabled=false`, but the default custom OSTree image
+     build remains because current publication still runs `ostree` inside the shared HTTPD pod.
+   - Migration of surviving build producers remains future work.
 
 5. Refactor artifact publication around endpoints.
    - Model registry, object storage, HTTP, and repository targets as managed or BYO connections.
@@ -130,6 +133,8 @@ These are proposed slices, not implementation approval.
 
 - Is Pulp still in scope for the modern path, or only for reference/full-stack deployments?
 - Is MachineSet automation still in scope for this fork?
-- Should HTTPD remain the default serving mechanism, or should object storage/registry-first publication replace it?
-- Should `ansible-rfe-runner` be produced by this repo, pulled from a maintained image, or built by a Pipeline?
+- Should HTTPD remain the default serving mechanism after artifact publication endpoints are redesigned, or should
+  object storage/registry-first publication replace it?
+- Should `ansible-rfe-runner` ultimately be produced by this repo, pulled from a maintained image, or built by a
+  Pipeline once lifecycle profiles exist?
 - Which exact OpenShift Virtualization DataSource names and namespaces should be supported by default for the retained Image Builder VM?
