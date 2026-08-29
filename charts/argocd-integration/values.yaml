@@ -1,0 +1,40 @@
+argocd:
+  target:
+    namespace: ""
+    project: rfe
+    server: https://kubernetes.default.svc
+
+  appProject:
+    create: false
+    name: ""
+    description: RHEL for Edge automation
+    sourceRepos: []
+    destinations: []
+    clusterResourceWhitelist: []
+    clusterResourceBlacklist:
+      - group: "*"
+        kind: "*"
+    namespaceResourceBlacklist: []
+    namespaceResourceWhitelist: []
+    orphanedResources: {}
+
+  access:
+    namespaceGrants:
+      create: false
+      name: ""
+      controllerNamespace: ""
+      controllerServiceAccount: ""
+      namespaces: []
+      rules:
+        - apiGroups:
+            - "*"
+          resources:
+            - "*"
+          verbs:
+            - "*"
+    clusterCapabilities:
+      create: false
+      name: ""
+      controllerNamespace: ""
+      controllerServiceAccount: ""
+      capabilities: []

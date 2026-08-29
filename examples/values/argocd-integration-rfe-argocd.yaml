@@ -1,0 +1,24 @@
+argocd:
+  target:
+    namespace: rfe-gitops
+    project: rfe
+    server: https://kubernetes.default.svc
+  appProject:
+    create: true
+    sourceRepos:
+      - https://github.com/redhat-cop/rhel-edge-automation-arch.git
+    destinations:
+      - namespace: rfe
+        server: https://kubernetes.default.svc
+      - namespace: openshift-pipelines
+        server: https://kubernetes.default.svc
+      - namespace: openshift-cnv
+        server: https://kubernetes.default.svc
+  access:
+    namespaceGrants:
+      create: true
+      controllerServiceAccount: argocd-application-controller
+      namespaces:
+        - rfe
+        - openshift-pipelines
+        - openshift-cnv

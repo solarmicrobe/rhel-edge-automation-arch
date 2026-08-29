@@ -150,6 +150,20 @@ The default Values file is stored in `examples/values/deployment/application-man
 helm upgrade -i -n rfe-gitops bootstrap charts/bootstrap/ -f examples/values/local/application-manager.yaml -f examples/values/local/rhsm.yaml
 ```
 
+#### Targeting an Existing Argo CD
+
+The `custom` branch separates Argo CD installation from Argo CD targeting. Use `charts/argocd-integration` when this
+repository should create a restrictive `AppProject` or explicit Argo CD access grants for an existing control plane.
+Use `argocd.target` values in `charts/application-manager` to render `Application` resources into that control-plane
+namespace while keeping each application's destination namespace separate.
+
+Focused examples are available in:
+
+* `examples/values/argocd-integration-byo-cluster.yaml`
+* `examples/values/argocd-integration-rfe-argocd.yaml`
+* `examples/values/application-manager-argocd-target.yaml`
+* `examples/values/bootstrap-byo-cluster-argocd.yaml`
+
 #### Disabling Components
 
 If you want to disable the deployment/management of certain components (for example, if you want to bring your own cluster that has ODF already installed), set `disabled: true` in the chart's values file. For example, to disable ODF, modify `examples/values/local/application-manager.yaml` and disable the deployment of the operator and the application (example shows only relevant fields):

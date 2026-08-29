@@ -1,4 +1,49 @@
 {{/*
+Return the ArgoCD control-plane namespace for Application metadata.
+*/}}
+{{- define "application-manager.argocdNamespace" -}}
+{{- if .chart.namespace }}
+{{- printf "%s" .chart.namespace }}
+{{- else if .Values.argocd.target.namespace }}
+{{- printf "%s" .Values.argocd.target.namespace }}
+{{- else if .Values.common.namespace }}
+{{- printf "%s" .Values.common.namespace }}
+{{- else }}
+{{- printf "%s" .Release.Namespace }}
+{{- end }}
+{{- end }}
+
+{{/*
+Return the ArgoCD project for Application specs.
+*/}}
+{{- define "application-manager.argocdProject" -}}
+{{- if .chart.project }}
+{{- printf "%s" .chart.project }}
+{{- else if .Values.argocd.target.project }}
+{{- printf "%s" .Values.argocd.target.project }}
+{{- else if .Values.argocd.project }}
+{{- printf "%s" .Values.argocd.project }}
+{{- else }}
+{{- printf "%s" .Values.common.project }}
+{{- end }}
+{{- end }}
+
+{{/*
+Return the ArgoCD destination server for Application specs.
+*/}}
+{{- define "application-manager.argocdServer" -}}
+{{- if .chart.server }}
+{{- printf "%s" .chart.server }}
+{{- else if .Values.argocd.target.server }}
+{{- printf "%s" .Values.argocd.target.server }}
+{{- else if .Values.argocd.server }}
+{{- printf "%s" .Values.argocd.server }}
+{{- else }}
+{{- printf "%s" .Values.common.server }}
+{{- end }}
+{{- end }}
+
+{{/*
 Determines the location of the Helm chart path
 */}}
 {{- define "application-manager.chartPath" -}}

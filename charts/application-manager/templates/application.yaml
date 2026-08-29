@@ -6,7 +6,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: {{ default $chartName $chart.name }}
-  namespace: {{ $chart.namespace | default (default $.Release.Namespace $.Values.common.namespace) }}
+  namespace: {{ include "application-manager.argocdNamespace" (dict "chart" $chart "Values" $.Values "Release" $.Release) }}
 {{- if $chart.annotations }}
   annotations:
     {{- tpl (toYaml $chart.annotations) $ | nindent 4 }}
@@ -22,8 +22,8 @@ spec:
 {{- end }}
   destination:
     namespace: {{ include "application-manager.destinationNamespace" (dict "chart" $chart "Values" $.Values "Release" $.Release) }}
-    server: {{ $chart.server | default (default $.Values.argocd.server $.Values.common.server) }}
-  project: {{ $chart.project | default (default $.Values.argocd.project $.Values.common.project) }}
+    server: {{ include "application-manager.argocdServer" (dict "chart" $chart "Values" $.Values "Release" $.Release) }}
+  project: {{ include "application-manager.argocdProject" (dict "chart" $chart "Values" $.Values "Release" $.Release) }}
   source:
 {{- if or ($chart.parameters) ($chart.valueFiles) ($chart.values) ($.Values.global) }}
     helm:

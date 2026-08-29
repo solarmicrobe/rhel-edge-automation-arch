@@ -14,3 +14,8 @@ dependencies:
   - name: application-manager
     version: 0.1.0
     repository: file://../application-manager
+  - name: argocd-integration
+    version: 0.1.0
+    repository: file://../argocd-integration
+    alias: argocdIntegration
+    condition: argocdIntegration.enabled

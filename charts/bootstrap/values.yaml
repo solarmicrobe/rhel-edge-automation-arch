@@ -1,0 +1,6 @@
+argocdIntegration:
+  enabled: false
+
+bootstrap:
+  legacyAppProjects:
+    enabled: false

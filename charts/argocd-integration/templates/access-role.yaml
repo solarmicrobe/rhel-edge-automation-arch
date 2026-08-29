@@ -1,0 +1,15 @@
+{{- include "argocd-integration.validateNamespaceGrants" . -}}
+{{- if .Values.argocd.access.namespaceGrants.create }}
+{{- range $namespace := .Values.argocd.access.namespaceGrants.namespaces }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "argocd-integration.namespaceGrantName" $ }}
+  namespace: {{ $namespace }}
+  labels:
+    {{- include "argocd-integration.labels" $ | nindent 4 }}
+rules:
+  {{- toYaml $.Values.argocd.access.namespaceGrants.rules | nindent 2 }}
+{{- end }}
+{{- end }}

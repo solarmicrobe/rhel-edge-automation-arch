@@ -1,4 +1,8 @@
 argocd:
+  target:
+    namespace: ""
+    project: ""
+    server: ""
   server: https://kubernetes.default.svc
   project: default
   retry:

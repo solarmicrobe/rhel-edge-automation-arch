@@ -2,7 +2,7 @@
 
 ## Status
 
-Draft implementation plan.
+Implemented on the `custom` branch.
 
 ## Goal
 
@@ -243,6 +243,40 @@ Subagent planning passes were used to keep component context bounded.
 | `application-manager-argocd-targeting` | Application metadata namespace, project, and destination server can be shifted to `argocd.target` while preserving destination namespace behavior. | Confirms application-manager can be its own worker with a narrow write set. |
 | `argocd-targeting-appproject-access-workflow-prereqs` | Workflows require explicit repos, destinations, and named capabilities, but should not force broad access or obsolete downloader support. | Adds workflow compatibility checks and AppProject source/destination constraints. |
 
-## Next Bounded Action
+## Implemented Values API
 
-Plan the `charts/argocd-integration` values API and template contract before writing implementation code.
+The first implementation keeps ArgoCD installation, Application targeting, AppProject ownership, and Kubernetes
+access grants separate:
+
+```yaml
+argocd:
+  target:
+    namespace: openshift-gitops
+    project: rfe
+    server: https://kubernetes.default.svc
+  appProject:
+    create: true
+    sourceRepos:
+      - https://github.com/redhat-cop/rhel-edge-automation-arch.git
+    destinations:
+      - namespace: rfe
+        server: https://kubernetes.default.svc
+  access:
+    namespaceGrants:
+      create: true
+      controllerServiceAccount: openshift-gitops-argocd-application-controller
+      namespaces:
+        - rfe
+```
+
+`charts/argocd-integration` renders no resources by default. When AppProject creation is enabled, wildcard source
+repositories, wildcard destinations, and blanket `*/*` cluster resource whitelist entries fail at Helm render time.
+The default AppProject renders a `*/*` cluster resource blacklist so cluster-scoped resources are denied unless a
+caller deliberately replaces it with explicit cluster resource whitelist entries. Namespace access grants are opt-in
+and create only namespace-scoped `Role` and `RoleBinding` resources for explicitly listed namespaces. Named cluster
+capabilities are separate and default to none; the first supported capability is `namespaces`, which grants namespace
+object management without granting `cluster-admin`.
+
+`charts/application-manager` now prefers `argocd.target.namespace`, `argocd.target.project`, and
+`argocd.target.server` for generated `Application` resources while preserving chart-level overrides and the older
+`argocd.*` / `common.*` fallback values during the transition.

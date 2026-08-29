@@ -1,0 +1,18 @@
+argocd:
+  target:
+    namespace: openshift-gitops
+    project: rfe
+    server: https://kubernetes.default.svc
+
+common:
+  repoURL: https://github.com/redhat-cop/rhel-edge-automation-arch.git
+  targetRevision: main
+  destinationNamespace: rfe
+  prune: true
+  selfHeal: true
+
+charts:
+  rfe-pipelines:
+    name: rfe-pipelines
+    path: charts/rfe-pipelines
+    destinationNamespace: rfe

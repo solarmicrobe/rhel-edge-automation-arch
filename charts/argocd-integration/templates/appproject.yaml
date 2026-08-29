@@ -1,0 +1,35 @@
+{{- include "argocd-integration.validateAppProject" . -}}
+{{- if .Values.argocd.appProject.create }}
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: {{ include "argocd-integration.appProjectName" . }}
+  namespace: {{ include "argocd-integration.targetNamespace" . }}
+  labels:
+    {{- include "argocd-integration.labels" . | nindent 4 }}
+spec:
+  description: {{ .Values.argocd.appProject.description | quote }}
+  sourceRepos:
+    {{- toYaml .Values.argocd.appProject.sourceRepos | nindent 4 }}
+  destinations:
+    {{- toYaml .Values.argocd.appProject.destinations | nindent 4 }}
+{{- if .Values.argocd.appProject.clusterResourceWhitelist }}
+  clusterResourceWhitelist:
+    {{- toYaml .Values.argocd.appProject.clusterResourceWhitelist | nindent 4 }}
+{{- else if .Values.argocd.appProject.clusterResourceBlacklist }}
+  clusterResourceBlacklist:
+    {{- toYaml .Values.argocd.appProject.clusterResourceBlacklist | nindent 4 }}
+{{- end }}
+{{- with .Values.argocd.appProject.namespaceResourceBlacklist }}
+  namespaceResourceBlacklist:
+    {{- toYaml . | nindent 4 }}
+{{- end }}
+{{- with .Values.argocd.appProject.namespaceResourceWhitelist }}
+  namespaceResourceWhitelist:
+    {{- toYaml . | nindent 4 }}
+{{- end }}
+{{- with .Values.argocd.appProject.orphanedResources }}
+  orphanedResources:
+    {{- toYaml . | nindent 4 }}
+{{- end }}
+{{- end }}
