@@ -100,6 +100,7 @@ The destination namespace must remain distinct from the ArgoCD control-plane nam
 - Do not implement the full `components.*.mode` lifecycle model.
 - Do not remove BuildConfigs.
 - Do not refactor Image Builder, Nexus, Quay, HTTPD, Pulp, or Pipeline workflows except where required for ArgoCD target rendering.
+- Do not replace the Image Builder VM with a containerized Buildah, bootc, or no-VM artifact workflow in this slice.
 - Do not remove the reference full-stack path.
 - Do not change runtime workflow behavior beyond ArgoCD target/AppProject/access rendering.
 - Do not commit generated `temp/` manifests or secret material.
@@ -172,6 +173,7 @@ Acceptance:
 
 - existing `rfe-pipelines` render output keeps current Pipeline and Task names;
 - existing `image-builder-vm` render output keeps current VM/service/job names unless a later scoped change intentionally gates a job;
+- the retained Image Builder VM remains the compose runtime and is treated as DataSource-backed in the modern path;
 - AppProject/source access accounts for tooling, blueprints, and kickstarts repos;
 - no wildcard source repos, wildcard destinations, or blanket cluster-resource access are required for modern examples;
 - no new access is added for the obsolete downloader/PVC/Nexus base-image path.

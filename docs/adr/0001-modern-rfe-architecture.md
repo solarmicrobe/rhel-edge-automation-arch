@@ -134,6 +134,14 @@ The modern path is OpenShift Virtualization `DataSource` only.
 
 The `custom` branch should not preserve the PVC/Nexus base-image staging path as a first-class option. Nexus may still be used for produced artifacts, but it should not be required to boot the image-builder VM.
 
+### Image Builder Runtime
+
+The Image Builder VM remains part of the modern architecture during the first modernization pass.
+
+Pipelines can replace legacy `BuildConfig` container-build paths and can orchestrate artifact workflows, but they do not remove the current need for a RHEL Image Builder runtime. The existing RHEL for Edge compose workflow still depends on `osbuild-composer` and `composer-cli`; that runtime should be provided by an Image Builder VM booted from an OpenShift Virtualization `DataSource`.
+
+The VM may later become a managed, BYO, or disabled component under the component lifecycle model. Replacing it with a no-VM bootc/image-mode workflow is a future architecture analysis item, not part of the current modernization scope.
+
 ### BuildConfig Modernization
 
 BuildConfig modernization should begin with workflow inventory, not direct translation.
@@ -153,6 +161,8 @@ The reference full-stack path can remain, but it should become visibly broader t
 - Add Helm render-time validation for invalid mode and dependency combinations.
 - Refactor ArgoCD install, AppProject, and access grants into separate concerns.
 - Remove the PVC/Nexus base-image staging path from the modern image-builder flow.
+- Keep the Image Builder VM as the compose runtime for the modern RHEL for Edge path, booted from an OpenShift Virtualization `DataSource`.
 - Inventory `BuildConfig` usage and retire or migrate each path based on the modern workflow model.
+- Re-evaluate a no-VM bootc/image-mode artifact workflow after the initial modernization pass is complete.
 
 The first implementation slice is tracked in [Plan 0001: ArgoCD Targeting, AppProject, and Access Separation](../plans/0001-argocd-targeting-appproject-access.md).

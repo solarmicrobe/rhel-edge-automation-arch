@@ -38,6 +38,8 @@ Accepted decisions:
 - charts/application-manager remains about rendering ArgoCD Application resources.
 - AppProject creation is optional and restrictive by default.
 - Kubernetes RBAC access grants are explicit, separate, and default to none.
+- The Image Builder VM remains the RHEL for Edge compose runtime for now and should boot from an OpenShift Virtualization DataSource in the modern path.
+- Re-analyze no-VM bootc/image-mode artifact workflows only after the initial modernization work is complete.
 - Do not implement the full component lifecycle model in this slice.
 
 Suggested subagent decomposition:
@@ -73,6 +75,7 @@ Suggested subagent decomposition:
    - inspect rendered workflow prerequisites that affect AppProject repos, destinations, and access capabilities
    - verify rfe-pipelines and image-builder-vm render names stay stable unless intentionally changed
    - identify any access grants the implementation accidentally adds for obsolete downloader/PVC/Nexus base-image staging
+   - preserve the current Image Builder VM compose-runtime model; do not redesign final artifact builds around Buildah, bootc, or no-VM execution in this slice
    Write set:
    - none by default; report findings only unless asked to patch docs
    Non-goals:
@@ -90,6 +93,7 @@ Suggested subagent decomposition:
    - docs/**
    Non-goals:
    - no Image Builder, Quay, Nexus, HTTPD, Pulp, or Pipeline workflow refactors
+   - no replacement of the Image Builder VM runtime
 
 Main-agent responsibilities:
 - decide the exact values API before dispatching implementation workers;
@@ -108,6 +112,7 @@ Minimum acceptance criteria:
 - no default modern path grants cluster-admin.
 - no AppProject default requires wildcard source repos, wildcard destinations, or blanket cluster-resource access.
 - no access is added for the obsolete downloader/PVC/Nexus base-image path.
+- retained image-builder-vm behavior stays DataSource-oriented for the modern path.
 - git diff --check passes.
 - relevant helm template commands pass and their purpose is recorded in the final response.
 

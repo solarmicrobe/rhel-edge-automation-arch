@@ -73,7 +73,7 @@ Those layers are currently coupled through the example values file. The default 
 | --- | --- | --- | --- |
 | Build ansible runner image | `charts/ansible-rfe-runner` renders a `BuildConfig` and `ImageStream`. | Internal `ansible-rfe-runner:latest` image consumed by jobs and pipeline tasks. | This is a remaining build path. It should be inventoried before replacement; it may become a prebuilt image, a Pipeline build, or an external dependency. |
 | Build HTTPD OSTree image | `charts/httpd` renders a `BuildConfig`, `ImageStream`, Deployment, PVC, Service, and Route. | HTTPD image with OSTree support for serving content. | This may be obsolete, replaceable by a standard image, or still needed for content serving. Do not translate directly to Pipeline until the need is confirmed. |
-| Configure image-builder VM | `charts/image-builder-vm/templates/image-builder-vm-ansible-job.yaml` runs Ansible against VM instances. | Configured Image Builder VM capable of composing artifacts. | Still likely core, but dependencies and credentials need mode-aware validation. |
+| Configure image-builder VM | `charts/image-builder-vm/templates/image-builder-vm-ansible-job.yaml` runs Ansible against VM instances. | Configured Image Builder VM capable of composing artifacts. | Retained for the first modernization pass. The VM should boot from an OpenShift Virtualization `DataSource`; dependencies and credentials need mode-aware validation. |
 | Download base RHEL image | `charts/image-builder-vm/templates/redhat-image-downloader-ansible-job.yaml` runs `ansible/playbooks/redhat-image-downloader.yaml`. | Base qcow2 uploaded to Nexus repository `rfe-rhel-media`. | Conflicts with the DataSource-only target. Current custom branch defaults to `datasource`, but this job renders when `dataVolumeSource` is not `pvc`; that should be corrected or removed. |
 | Compose RFE OCI image | `rfe-oci-image-pipeline` clones tooling and blueprints, creates a Quay repository, builds via Image Builder, and pushes the result. | OCI image path, tags, Image Builder commit ID. | Core workflow, but assumes Quay setup secret, internal runner image, cluster `git-clone` ClusterTask, and SSH access to the VM. |
 | Stage OSTree content | `rfe-oci-stage-pipeline` and Ansible roles create/import ImageStreams and serve staged content over HTTPD. | HTTP URL for staged OSTree content. | Tightly coupled to internal HTTPD and OpenShift ImageStream behavior. Needs review against artifact publication targets. |
@@ -108,7 +108,7 @@ These are proposed slices, not implementation approval.
    - Move AppProject and Kubernetes access grants into explicit control-plane/access layers.
    - Remove default cluster-admin behavior from modern modes.
 
-3. Make Image Builder DataSource-only in the modern path.
+3. Keep Image Builder VM DataSource-only in the modern path.
    - Remove or disable the PVC/Nexus base-image branch from modern rendering.
    - Remove or correct the downloader job path.
    - Add DataSource connection values and render-time validation.
@@ -122,10 +122,14 @@ These are proposed slices, not implementation approval.
    - Model registry, object storage, HTTP, and repository targets as managed or BYO connections.
    - Update workflows to consume endpoints instead of assuming internal Quay, Nexus, or HTTPD.
 
+6. Re-evaluate no-VM artifact workflows after modernization.
+   - Compare the retained Image Builder VM path against bootc/image-mode and `bootc-image-builder`.
+   - Do not replace the VM during the ArgoCD/access, component lifecycle, or DataSource cleanup slices.
+
 ## Open Questions
 
 - Is Pulp still in scope for the modern path, or only for reference/full-stack deployments?
 - Is MachineSet automation still in scope for this fork?
 - Should HTTPD remain the default serving mechanism, or should object storage/registry-first publication replace it?
 - Should `ansible-rfe-runner` be produced by this repo, pulled from a maintained image, or built by a Pipeline?
-- Which exact OpenShift Virtualization DataSource names and namespaces should be supported by default?
+- Which exact OpenShift Virtualization DataSource names and namespaces should be supported by default for the retained Image Builder VM?
