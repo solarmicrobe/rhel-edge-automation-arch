@@ -13,6 +13,34 @@ commonCR:
 ansibleRunner:
   image: image-registry.openshift-image-registry.svc:5000/rfe/ansible-rfe-runner:latest
 
+publicationEndpoints:
+  registry:
+    mode: managed-reference
+    imagePath: ""
+    publisherSecretName: publisher
+    setupSecretName: quay-rfe-setup
+  artifactRepository:
+    mode: managed-reference
+    disabledResultValue: ""
+    nexus:
+      credentialsSecretName: nexus-rfe-credentials
+      credentialsSecretNamespace: rfe
+      serviceName: nexus
+      servicePort: 8081
+      httpScheme: http
+      routeName: nexus
+      routeNamespace: rfe
+      kickstartRepository: rfe-kickstarts
+      autoIsoRepository: rfe-auto-iso
+  httpServing:
+    mode: managed-reference
+    routeName: httpd
+    routeNamespace: rfe
+    podNamespace: rfe
+    podLabelSelector: deployment=httpd
+    webRoot: /var/www/html
+    stageServiceAccountName: oci-rfe-httpd
+
 pipelines:
   repos:
     tooling:

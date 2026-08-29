@@ -1,2 +1,4 @@
 image_builder_service_name: image-builder.rfe.svc.cluster.local
 nexus_repository: rfe-auto-iso
+httpd_route_name: httpd
+httpd_route_namespace: rfe

@@ -1,0 +1,5 @@
+publicationEndpoints:
+  registry:
+    mode: external
+    imagePath: registry.example.com/rfe/edge
+    publisherSecretName: publisher

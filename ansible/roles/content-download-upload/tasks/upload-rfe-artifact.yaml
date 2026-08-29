@@ -47,8 +47,8 @@
         host: https://kubernetes.default.svc
         kind: Route
         api_version: route.openshift.io/v1
-        namespace: rfe
-        name: nexus
+        namespace: "{{ nexus_route_namespace }}"
+        name: "{{ nexus_route_name }}"
         validate_certs: yes
       register: nexus_route
 
@@ -57,6 +57,12 @@
         dest: "{{ artifact_repository_url_output_file }}"
         content: "{{ ('https://' if nexus_route.resources[0].spec.tls is defined else 'http://') + nexus_route.resources[0].spec.host }}/{{ nexus_destination_path }}"
   when: skip_nexus_upload is not defined or (not skip_nexus_upload|bool)
+
+- name: Save Disabled Artifact Repository Result to File
+  copy:
+    dest: "{{ artifact_repository_url_output_file }}"
+    content: "{{ artifact_repository_disabled_result_value }}"
+  when: skip_nexus_upload is defined and (skip_nexus_upload|bool)
 
 - name: Copy to HTTPD
   block:
@@ -67,14 +73,14 @@
         host: https://kubernetes.default.svc
         kind: Route
         api_version: route.openshift.io/v1
-        namespace: rfe
-        name: httpd
+        namespace: "{{ httpd_route_namespace }}"
+        name: "{{ httpd_route_name }}"
         validate_certs: yes
       register: httpd_route
 
     - name: Set name of HTTPD Pod
       set_fact:
-        httpd_pod: "{{ (lookup('community.kubernetes.k8s', kind='Pod', namespace='rfe', label_selector=httpd_pod_label_selector, ca_cert='/var/run/secrets/kubernetes.io/serviceaccount/ca.crt', api_key=lookup('file', '/var/run/secrets/kubernetes.io/serviceaccount/token'),validate_certs=true, host='https://kubernetes.default.svc')).metadata.name }}"
+        httpd_pod: "{{ (lookup('community.kubernetes.k8s', kind='Pod', namespace=httpd_pod_namespace, label_selector=httpd_pod_label_selector, ca_cert='/var/run/secrets/kubernetes.io/serviceaccount/ca.crt', api_key=lookup('file', '/var/run/secrets/kubernetes.io/serviceaccount/token'),validate_certs=true, host='https://kubernetes.default.svc')).metadata.name }}"
 
     - name: Add HTTPD Pod as Host
       add_host:

@@ -20,7 +20,7 @@
 
 - name: Wait for Stage Deployment
   ansible.builtin.uri:
-    url: "http://{{ quay_image_path_basename }}-{{ quay_image_tag }}-httpd.rfe.svc.cluster.local/repo/config"
+    url: "http://{{ quay_image_path_basename }}-{{ quay_image_tag }}-httpd.{{ stage_namespace }}.svc.cluster.local/repo/config"
   delay: 10
   retries: 60
 
@@ -54,7 +54,7 @@
       - "add"
       - "--no-gpg-verify"
       - "{{ quay_image_path_basename }}-{{ quay_image_tag }}"
-      - "http://{{ quay_image_path_basename }}-{{ quay_image_tag }}-httpd.rfe.svc.cluster.local/repo"
+      - "http://{{ quay_image_path_basename }}-{{ quay_image_tag }}-httpd.{{ stage_namespace }}.svc.cluster.local/repo"
   ignore_errors: yes
   register: ostree_remote_add
 
@@ -90,8 +90,8 @@
     ca_cert: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
     host: https://kubernetes.default.svc
     kind: Route
-    name: httpd
-    namespace: rfe
+    name: "{{ httpd_route_name }}"
+    namespace: "{{ httpd_route_namespace }}"
     validate_certs: yes
   delegate_to: localhost
   register: httpd_route

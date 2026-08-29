@@ -41,6 +41,15 @@ spec:
             -e kickstart_url=$(params.kickstart-url) \
             -e build_commit_id=$(params.build-commit-id) \
             -e image_builder_host=$(params.image-builder-host) \
+            -e nexus_credentials_secret_name={{ .Values.publicationEndpoints.artifactRepository.nexus.credentialsSecretName | quote }} \
+            -e nexus_credentials_secret_namespace={{ .Values.publicationEndpoints.artifactRepository.nexus.credentialsSecretNamespace | quote }} \
+            -e nexus_repository={{ .Values.publicationEndpoints.artifactRepository.nexus.autoIsoRepository | quote }} \
+            -e nexus_http_scheme={{ .Values.publicationEndpoints.artifactRepository.nexus.httpScheme | quote }} \
+            -e nexus_service_name={{ .Values.publicationEndpoints.artifactRepository.nexus.serviceName | quote }} \
+            -e nexus_service_port={{ .Values.publicationEndpoints.artifactRepository.nexus.servicePort | quote }} \
+            -e skip_nexus_upload={{ eq .Values.publicationEndpoints.artifactRepository.mode "disabled" | quote }} \
+            -e httpd_route_name={{ .Values.publicationEndpoints.httpServing.routeName | quote }} \
+            -e httpd_route_namespace={{ .Values.publicationEndpoints.httpServing.routeNamespace | quote }} \
             -e iso_url_output_file=$(results.iso-url.path) \
             playbooks/oci-build-auto-iso.yaml
       command:

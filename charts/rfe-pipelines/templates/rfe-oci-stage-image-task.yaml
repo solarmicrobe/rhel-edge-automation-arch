@@ -32,6 +32,8 @@ spec:
             -e quay_image_path=$(params.image-path) \
             -e quay_image_tag=$(params.image-tag) \
             -e route_host="$(params.route-host)" \
+            -e stage_namespace={{ .Values.publicationEndpoints.httpServing.podNamespace | quote }} \
+            -e oci_rfe_http_service_account={{ .Values.publicationEndpoints.httpServing.stageServiceAccountName | quote }} \
             -e content_path_output_file=$(results.content-path.path) \
             playbooks/oci-stage-content.yaml
       command:

@@ -14,6 +14,10 @@ spec:
     - name: repository-name
       description: Name of the Quay Repository
       type: string
+    - name: image-path
+      description: Existing container image path when using an external registry endpoint
+      default: {{ .Values.publicationEndpoints.registry.imagePath | quote }}
+      type: string
   results:
     - name: image-path
       description: Path to Container Image
@@ -23,14 +27,22 @@ spec:
       workingDir: /workspace/workspace
       args:
         - |-
+          {{- if eq .Values.publicationEndpoints.registry.mode "external" }}
+          printf '%s' "$(params.image-path)" > "$(results.image-path.path)"
+          exit 0
+          {{- else }}
           cd tooling/ansible
           ansible-galaxy collection install -r collections/requirements.yaml
           ansible-playbook playbooks/oci-create-repository.yaml \
             -e quay_repository_name=$(params.repository-name) \
+            -e quay_setup_secret_name={{ .Values.publicationEndpoints.registry.setupSecretName | quote }} \
+            -e quay_setup_secret_namespace={{ include "common.names.namespace" $ | quote }} \
             -e quay_image_path_output_file=$(results.image-path.path)
+          {{- end }}
       command:
         - /bin/bash
         - -c
+      {{- if eq .Values.publicationEndpoints.registry.mode "managed-reference" }}
       volumeMounts:
         - name: publisher
           mountPath: /var/secrets/publisher
@@ -38,12 +50,15 @@ spec:
         - name: quay-rfe-setup
           mountPath: /var/secrets/quay-rfe-setup
           readOnly: true
+      {{- end }}
+  {{- if eq .Values.publicationEndpoints.registry.mode "managed-reference" }}
   volumes:
     - name: publisher
       secret:
-        secretName: publisher
+        secretName: {{ .Values.publicationEndpoints.registry.publisherSecretName | quote }}
         defaultMode: 0440
     - name: quay-rfe-setup
       secret:
-        secretName: quay-rfe-setup
+        secretName: {{ .Values.publicationEndpoints.registry.setupSecretName | quote }}
         defaultMode: 0440
+  {{- end }}

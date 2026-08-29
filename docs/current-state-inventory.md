@@ -81,15 +81,21 @@ Those layers are currently coupled through the example values file. The default 
 | Build installer image or ISO | `rfe-oci-iso-pipeline`, installer-image tasks, and ISO generator roles. | Installer image build IDs and ISO output URL. | Likely core, but publication should be endpoint-driven rather than HTTPD/Nexus-assumed. |
 | Render and upload kickstarts | `rfe-kickstart-pipeline` and `upload-kickstart` task call `ansible/playbooks/upload-kickstart.yaml`. | Nexus artifact URL and serving URL. | Currently requires Nexus credentials and HTTPD upload. BYO artifact targets need explicit connection values. |
 
+Plan 0004 update: `charts/rfe-pipelines` now exposes a focused `publicationEndpoints` values boundary. Registry
+consumption can use a pre-created external image path while retaining managed Quay as the reference setup path; Nexus
+produced-artifact storage exposes explicit secret, service, route, and repository values and can be disabled for the
+pipeline-driven upload paths; HTTPD remains a managed reference because current publication flows still need a writable
+pod, PVC-backed web root, route lookup, and `ostree` tooling.
+
 ## Cross-Cutting Assumptions
 
 | Assumption | Evidence | Impact |
 | --- | --- | --- |
 | Reference install can own broad cluster behavior. | `setup/init.sh`, `charts/argocd`, wildcard AppProject, user-mgmt cluster-admin binding. | Must be isolated to `reference-full-stack` or explicit capabilities. |
 | BYO means disabling selected apps. | README documents `disabled: true`; application-manager only checks `disabled`. | BYO needs lifecycle and connection semantics. |
-| Repo-managed Quay exists. | Pipeline tasks and docs use Quay route and `quay-rfe-setup` secret. | BYO registry support requires a connection contract and task changes. |
-| Repo-managed Nexus exists. | Kickstart upload and base-image downloader expect Nexus credentials and repositories. | Nexus should be optional artifact storage, not a base-image prerequisite. |
-| Internal HTTPD exists for serving artifacts. | HTTPD chart and Ansible roles produce or discover HTTPD routes. | Serving targets should be modeled as managed or BYO artifact endpoints. |
+| Repo-managed Quay exists. | Pipeline tasks and docs use Quay route and `quay-rfe-setup` secret by default; Plan 0004 allows `rfe-pipelines` registry consumers to use an external pre-created image path. | Quay setup remains managed-reference; generic registry provisioning is deferred. |
+| Repo-managed Nexus exists. | Kickstart upload, auto ISO upload, and legacy downloader paths expect Nexus credentials and repositories; Plan 0004 parameterizes produced-artifact Nexus endpoint values and allows pipeline-driven Nexus upload to be disabled. | Nexus remains optional produced-artifact storage and must not become a modern Image Builder VM boot prerequisite. |
+| Internal HTTPD exists for serving artifacts. | HTTPD chart and Ansible roles produce or discover HTTPD routes, locate writable pods, and run OSTree publication through the HTTPD web root. | HTTPD remains managed-reference until a later serving contract replaces pod execution, writable storage, and `ostree` tooling assumptions. |
 | Pipelines operator and Tekton ClusterTasks exist. | Pipelines use `git-clone` `ClusterTask`; docs require `tkn`. | BYO Pipelines mode needs prerequisites and validation. Managed mode must install what workflows require. |
 | Service account access is local and cross-namespace. | `rbac`, `quay`, `user-mgmt`, `machineset`, `odf`, and `pulp` charts render RoleBindings or ClusterRoleBindings. | Access should be explicit, capability-based, and separate from workload deployment. |
 
@@ -122,8 +128,12 @@ These are proposed slices, not implementation approval.
    - Migration of surviving build producers remains future work.
 
 5. Refactor artifact publication around endpoints.
-   - Model registry, object storage, HTTP, and repository targets as managed or BYO connections.
-   - Update workflows to consume endpoints instead of assuming internal Quay, Nexus, or HTTPD.
+   - Plan 0004 added explicit `publicationEndpoints` values for registry, Nexus produced-artifact storage, and HTTPD
+     serving assumptions.
+   - Managed Quay, Nexus, and HTTPD remain the reference defaults.
+   - External registry consumption is supported through a pre-created image path.
+   - Full external repository storage and HTTP serving remain future work where workflows still need service upload,
+     route lookup, pod execution, writable storage, or `ostree` tooling.
 
 6. Re-evaluate no-VM artifact workflows after modernization.
    - Compare the retained Image Builder VM path against bootc/image-mode and `bootc-image-builder`.

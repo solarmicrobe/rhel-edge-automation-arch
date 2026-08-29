@@ -176,8 +176,8 @@
     ca_cert: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
     host: https://kubernetes.default.svc
     kind: Route
-    name: httpd
-    namespace: rfe
+    name: "{{ httpd_route_name }}"
+    namespace: "{{ httpd_route_namespace }}"
     validate_certs: yes
   become: no
   register: httpd_route

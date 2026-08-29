@@ -1,0 +1,4 @@
+publicationEndpoints:
+  artifactRepository:
+    mode: disabled
+    disabledResultValue: ""

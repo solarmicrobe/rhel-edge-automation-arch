@@ -40,6 +40,21 @@ spec:
             -e ostree_repo_url=$(params.ostree-repo-url) \
             -e kickstart_file=$(params.kickstart-path) \
             -e kickstart_destination_dir=$(params.kickstart-destination-dir) \
+            -e nexus_credentials_secret_name={{ .Values.publicationEndpoints.artifactRepository.nexus.credentialsSecretName | quote }} \
+            -e nexus_credentials_secret_namespace={{ .Values.publicationEndpoints.artifactRepository.nexus.credentialsSecretNamespace | quote }} \
+            -e nexus_rfe_kickstarts_repository={{ .Values.publicationEndpoints.artifactRepository.nexus.kickstartRepository | quote }} \
+            -e nexus_http_scheme={{ .Values.publicationEndpoints.artifactRepository.nexus.httpScheme | quote }} \
+            -e nexus_service_name={{ .Values.publicationEndpoints.artifactRepository.nexus.serviceName | quote }} \
+            -e nexus_service_port={{ .Values.publicationEndpoints.artifactRepository.nexus.servicePort | quote }} \
+            -e nexus_route_name={{ .Values.publicationEndpoints.artifactRepository.nexus.routeName | quote }} \
+            -e nexus_route_namespace={{ .Values.publicationEndpoints.artifactRepository.nexus.routeNamespace | quote }} \
+            -e skip_nexus_upload={{ eq .Values.publicationEndpoints.artifactRepository.mode "disabled" | quote }} \
+            -e artifact_repository_disabled_result_value={{ .Values.publicationEndpoints.artifactRepository.disabledResultValue | quote }} \
+            -e httpd_route_name={{ .Values.publicationEndpoints.httpServing.routeName | quote }} \
+            -e httpd_route_namespace={{ .Values.publicationEndpoints.httpServing.routeNamespace | quote }} \
+            -e httpd_pod_namespace={{ .Values.publicationEndpoints.httpServing.podNamespace | quote }} \
+            -e httpd_pod_label_selector={{ .Values.publicationEndpoints.httpServing.podLabelSelector | quote }} \
+            -e httpd_html_dir={{ .Values.publicationEndpoints.httpServing.webRoot | quote }} \
             -e artifact_repository_url_output_file=$(results.artifact-repository-storage-url.path) \
             -e storage_url_output_file=$(results.serving-storage-url.path) \
             $(params.extra-ansible-variables) \

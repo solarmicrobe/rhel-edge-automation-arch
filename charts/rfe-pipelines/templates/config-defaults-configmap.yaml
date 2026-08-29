@@ -1,3 +1,4 @@
+{{- include "rfePipelines.validate" . -}}
 {{- if not (default .Values.defaultsConfigmap.disabled false) }}
 apiVersion: v1
 data:

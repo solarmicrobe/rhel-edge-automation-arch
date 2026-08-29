@@ -1,4 +1,6 @@
 nexus_credentials_secret_name: nexus-rfe-credentials
+nexus_credentials_secret_namespace: rfe
 nexus_http_scheme: http
 nexus_service_name: nexus
 nexus_service_port: 8081
+skip_nexus_upload: false

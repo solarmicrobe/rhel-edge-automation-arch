@@ -32,6 +32,9 @@ spec:
             -e quay_image_path=$(params.image-path) \
             -e quay_image_tag=$(params.image-tag) \
             -e skip_free_space_protection=$(params.skip-free-space-protection) \
+            -e httpd_web_root={{ .Values.publicationEndpoints.httpServing.webRoot | quote }} \
+            -e httpd_route_name={{ .Values.publicationEndpoints.httpServing.routeName | quote }} \
+            -e httpd_route_namespace={{ .Values.publicationEndpoints.httpServing.routeNamespace | quote }} \
             -e content_path_output_file=$(results.content-path.path) \
             playbooks/oci-publish-content.yaml
       command:

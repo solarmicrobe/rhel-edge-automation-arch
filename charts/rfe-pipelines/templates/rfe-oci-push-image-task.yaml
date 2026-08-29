@@ -53,9 +53,11 @@ spec:
         - name: publisher
           mountPath: /var/secrets/publisher
           readOnly: true
+        {{- if eq .Values.publicationEndpoints.registry.mode "managed-reference" }}
         - name: quay-rfe-setup
           mountPath: /var/secrets/quay-rfe-setup
           readOnly: true
+        {{- end }}
         - name: image-builder-ssh
           mountPath: /var/secrets/image-builder-ssh
           readOnly: true
@@ -63,11 +65,13 @@ spec:
     - name: publisher
       secret:
         defaultMode: 0440
-        secretName: publisher
+        secretName: {{ .Values.publicationEndpoints.registry.publisherSecretName | quote }}
+    {{- if eq .Values.publicationEndpoints.registry.mode "managed-reference" }}
     - name: quay-rfe-setup
       secret:
         defaultMode: 0440
-        secretName: quay-rfe-setup
+        secretName: {{ .Values.publicationEndpoints.registry.setupSecretName | quote }}
+    {{- end }}
     - name: image-builder-ssh
       secret:
         defaultMode: 0440

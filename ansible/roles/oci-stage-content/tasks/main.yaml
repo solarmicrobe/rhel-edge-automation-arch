@@ -22,13 +22,13 @@
     host: https://kubernetes.default.svc
     kind: ImageStream
     name: "{{ quay_image_path_basename }}-{{ quay_image_tag }}"
-    namespace: rfe
+    namespace: "{{ stage_namespace }}"
     validate_certs: yes
   register: imagestream_check_results
 
 - name: Update Image Stream
   ansible.builtin.command: >
-    oc import-image -n rfe {{ quay_image_path_basename }}-{{ quay_image_tag }}
+    oc import-image -n {{ stage_namespace | quote }} {{ quay_image_path_basename }}-{{ quay_image_tag }}
   when:
     - imagestream_check_results.resources | count > 0
 
@@ -43,7 +43,7 @@
       kind: ImageStream
       metadata:
         name: "{{ quay_image_path_basename }}-{{ quay_image_tag }}"
-        namespace: rfe
+        namespace: "{{ stage_namespace }}"
       spec:
         lookupPolicy:
           local: false
@@ -68,7 +68,7 @@
           "from": {
             "kind": "ImageStreamTag",
             "name": "{{ quay_image_path_basename }}-{{ quay_image_tag }}:{{ quay_image_tag }}",
-            "namespace": "rfe"
+            "namespace": "{{ stage_namespace }}"
           },
           "fieldPath": "spec.template.spec.containers[?(@.name==\"httpd\")].image"
         }
@@ -91,7 +91,7 @@
           app.kubernetes.io/component: "{{ quay_image_path_basename }}-{{ quay_image_tag }}-httpd"
           app.kubernetes.io/instance: "{{ quay_image_path_basename }}-{{ quay_image_tag }}-httpd"
         name: "{{ quay_image_path_basename }}-{{ quay_image_tag }}-httpd"
-        namespace: rfe
+        namespace: "{{ stage_namespace }}"
       spec:
         replicas: 1
         selector:
@@ -135,7 +135,7 @@
           app.kubernetes.io/component: "{{ quay_image_path_basename }}-{{ quay_image_tag }}-httpd"
           app.kubernetes.io/instance: "{{ quay_image_path_basename }}-{{ quay_image_tag }}-httpd"
         name: "{{ quay_image_path_basename }}-{{ quay_image_tag }}-httpd"
-        namespace: rfe
+        namespace: "{{ stage_namespace }}"
       spec:
         ports:
           - name: http-80
@@ -164,7 +164,7 @@
       apiVersion: route.openshift.io/v1
       metadata:
         name: "{{ quay_image_path_basename }}-{{ quay_image_tag }}"
-        namespace: rfe
+        namespace: "{{ stage_namespace }}"
         labels:
           app: "{{ quay_image_path_basename }}-{{ quay_image_tag }}-httpd"
           app.kubernetes.io/component: "{{ quay_image_path_basename }}-{{ quay_image_tag }}-httpd"

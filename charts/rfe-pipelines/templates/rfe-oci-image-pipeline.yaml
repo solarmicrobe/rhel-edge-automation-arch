@@ -36,6 +36,10 @@ spec:
       description: Tooling Repository URL
       default: {{ $.Values.pipelines.repos.tooling.repoURL }}
       type: string
+    - name: registry-image-path
+      description: Existing container image path when using an external registry endpoint
+      default: {{ $.Values.publicationEndpoints.registry.imagePath | quote }}
+      type: string
   results:
     - name: build-commit
       description: Commit ID of the Build
@@ -87,6 +91,8 @@ spec:
       params:
         - name: repository-name
           value: $(params.blueprint-dir)
+        - name: image-path
+          value: $(params.registry-image-path)
       runAfter:
         - "git-clone-blueprints"
         - "git-clone-tooling"
