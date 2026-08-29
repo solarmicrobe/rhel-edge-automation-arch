@@ -24,7 +24,7 @@ Our design will focus on the following topics:
 
 The overall architecture is still being defined. We have split out "Above Site" components (things like RFE build orchestration and CI/CD tooling) and "Below Site" (the actual RFE deployments). All Above Site components will be hosted on OpenShift.
 
-The modernization direction for this fork is documented in [ADR 0001: Modern RFE Architecture Direction](docs/adr/0001-modern-rfe-architecture.md).
+The modernization direction for this fork is documented in [ADR 0001: Modern RFE Architecture Direction](docs/adr/0001-modern-rfe-architecture.md), with current implementation assumptions tracked in the [current-state inventory](docs/current-state-inventory.md).
 
 ![Overall Architecture](/images/overall-architecture.png)
 

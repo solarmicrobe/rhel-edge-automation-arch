@@ -148,7 +148,7 @@ The reference full-stack path can remain, but it should become visibly broader t
 
 ## Follow-up Work
 
-- Document the current chart and workflow inventory.
+- Document the current chart and workflow inventory: [current-state inventory](../current-state-inventory.md).
 - Define the new values API for deployment modes, ArgoCD targeting, components, connections, workflows, and access capabilities.
 - Add Helm render-time validation for invalid mode and dependency combinations.
 - Refactor ArgoCD install, AppProject, and access grants into separate concerns.
