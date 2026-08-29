@@ -24,7 +24,7 @@ Our design will focus on the following topics:
 
 The overall architecture is still being defined. We have split out "Above Site" components (things like RFE build orchestration and CI/CD tooling) and "Below Site" (the actual RFE deployments). All Above Site components will be hosted on OpenShift.
 
-The modernization direction for this fork is documented in [ADR 0001: Modern RFE Architecture Direction](docs/adr/0001-modern-rfe-architecture.md), with current implementation assumptions tracked in the [current-state inventory](docs/current-state-inventory.md). The first modernization slice is planned in [Plan 0001: ArgoCD Targeting, AppProject, and Access Separation](docs/plans/0001-argocd-targeting-appproject-access.md).
+The modernization direction for this fork is documented in [ADR 0001: Modern RFE Architecture Direction](docs/adr/0001-modern-rfe-architecture.md), with current implementation assumptions tracked in the [current-state inventory](docs/current-state-inventory.md). The first modernization slice is tracked in [Plan 0001: ArgoCD Targeting, AppProject, and Access Separation](docs/plans/0001-argocd-targeting-appproject-access.md), and the Image Builder VM DataSource slice is tracked in [Plan 0002: Image Builder VM DataSource Modernization](docs/plans/0002-image-builder-datasource-modernization.md).
 
 ![Overall Architecture](/images/overall-architecture.png)
 
@@ -163,6 +163,28 @@ Focused examples are available in:
 * `examples/values/argocd-integration-rfe-argocd.yaml`
 * `examples/values/application-manager-argocd-target.yaml`
 * `examples/values/bootstrap-byo-cluster-argocd.yaml`
+
+#### Image Builder VM DataSource
+
+The modern Image Builder VM path boots the VM root disk from an OpenShift Virtualization `DataSource`. The default chart
+values use `imageBuilderVM.dataSource.name: rhel8` and
+`imageBuilderVM.dataSource.namespace: openshift-virtualization-os-images`.
+
+To override the source image, set:
+
+```yaml
+imageBuilderVM:
+  dataVolumeSource: datasource
+  dataSource:
+    name: rhel8
+    namespace: openshift-virtualization-os-images
+```
+
+A focused example is available in `examples/values/image-builder-vm-datasource.yaml`.
+
+The older PVC/Nexus base-image staging path is retained only as explicit legacy/reference behavior. Modern renders do
+not create the `redhat-image-downloader-ansible-job`, do not reference `rfe-rhel-media`, and do not require Nexus to
+boot the Image Builder VM. Nexus may still be used by artifact publication workflows.
 
 #### Disabling Components
 

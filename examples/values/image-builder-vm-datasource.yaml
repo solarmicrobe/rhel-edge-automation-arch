@@ -1,0 +1,5 @@
+imageBuilderVM:
+  dataVolumeSource: datasource
+  dataSource:
+    name: rhel8
+    namespace: openshift-virtualization-os-images

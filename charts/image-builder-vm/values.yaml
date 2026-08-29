@@ -14,7 +14,16 @@ ansibleVM:
   activeDeadlineSeconds: 1800
 
 imageBuilderVM:
+  # Supported values:
+  # - datasource: modern default; boot from an OpenShift Virtualization DataSource.
+  # - pvc: legacy/reference path; requires legacyPvcSource.enabled=true.
   dataVolumeSource: datasource
+  dataSource:
+    name: rhel8
+    namespace: openshift-virtualization-os-images
+  legacyPvcSource:
+    enabled: false
+    repositoryUrl: http://nexus:8081/repository/rfe-rhel-media
   labels:
     app: image-builder
     workload.template.kubevirt.io/server: "true"

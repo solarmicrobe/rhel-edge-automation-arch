@@ -1,4 +1,4 @@
-{{- if eq $.Values.imageBuilderVM.dataVolumeSource "pvc" -}}
+{{- if and (eq $.Values.imageBuilderVM.dataVolumeSource "pvc") $.Values.imageBuilderVM.legacyPvcSource.enabled -}}
 apiVersion: batch/v1
 kind: Job
 metadata:

@@ -1,6 +1,6 @@
 {{- $i := (.Values.imageBuilderVM.replicas | int) -}}
 {{- if not (ge $i 1) -}}
-{{- fail "imageBuilderVM.replicas must be greater than or equal to zero!" -}}
+{{- fail "imageBuilderVM.replicas must be greater than or equal to 1!" -}}
 {{- end -}}
 {{- range until $i -}}
 {{- $instance_name := printf "image-builder-%03d" . -}}
