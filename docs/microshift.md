@@ -15,6 +15,9 @@ The following requirements must be satisfied prior to beginning the example:
 
 This build will use the MicroShift blueprint hosted in our repository in the `blueprints` branch [here](https://github.com/redhat-cop/rhel-edge-automation-arch/blob/blueprints/microshift/blueprint.toml). It has all of the packages required to run MicroShift as well as an initial user called `redhat` with the same password.
 
+This example is RHEL 8-specific. Its additional content source URLs and Image Builder assumptions are tied to the
+current RHEL 8-oriented workflow and should not be treated as a RHEL 9 or RHEL 10 image-mode example.
+
 ### Updating Default Password
 
 For more secure installations, it is recommended you modify the blueprint and update the password hash. Using the following command to generate a new hash:

@@ -17,6 +17,10 @@ spec:
       description: Tag Associated with the RFE Image to Deploy
     - name: skip-free-space-protection
       description: Instruct OSTree to skip its free space protection
+    - name: ostree-ref
+      description: OSTree ref to mirror from the staged content
+      default: {{ .Values.rhelTarget.imageBuilder.ostreeRef | quote }}
+      type: string
   results:
     - name: content-path
       description: URL to OSTree Content
@@ -35,6 +39,7 @@ spec:
             -e httpd_web_root={{ .Values.publicationEndpoints.httpServing.webRoot | quote }} \
             -e httpd_route_name={{ .Values.publicationEndpoints.httpServing.routeName | quote }} \
             -e httpd_route_namespace={{ .Values.publicationEndpoints.httpServing.routeNamespace | quote }} \
+            -e ostree_ref=$(params.ostree-ref) \
             -e content_path_output_file=$(results.content-path.path) \
             playbooks/oci-publish-content.yaml
       command:

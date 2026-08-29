@@ -1,6 +1,17 @@
 rhel:
   version: "8.5"
 
+rhelTarget:
+  major: 8
+  architecture: x86_64
+  imageBuilder:
+    enabled: true
+    repositories:
+      - rhel-8-for-x86_64-appstream-rpms
+      - rhel-8-for-x86_64-baseos-rpms
+  imageMode:
+    enabled: false
+
 imageDownloaderJob:
   annotations:
     argocd.argoproj.io/hook: PreSync

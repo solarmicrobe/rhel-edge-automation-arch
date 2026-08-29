@@ -87,6 +87,16 @@ produced-artifact storage exposes explicit secret, service, route, and repositor
 pipeline-driven upload paths; HTTPD remains a managed reference because current publication flows still need a writable
 pod, PVC-backed web root, route lookup, and `ostree` tooling.
 
+Plan 0006 update: `charts/rfe-pipelines` and `charts/image-builder-vm` now expose chart-local `rhelTarget` values for
+the retained Image Builder runtime boundary. Current defaults remain RHEL 8-oriented implementation facts:
+`rhelTarget.major: 8`, `architecture: x86_64`, RHEL 8 BaseOS/AppStream RHSM repositories,
+`rhel/8/x86_64/edge`, and Image Builder compose types `rhel-edge-container` and `rhel-edge-installer`.
+The current runtime remains Image Builder VM plus `osbuild-composer`, `composer-cli`, SSH, OSTree publication,
+kickstart, and autoboot ISO workflows. RHEL 10 image-mode/bootc values are rejected at Helm render time until a later
+plan implements that separate workflow. Plan 0004 `publicationEndpoints` remains the artifact publication boundary, and
+the modern Image Builder VM root disk remains OpenShift Virtualization `DataSource` backed without PVC/Nexus base-image
+staging.
+
 ## Cross-Cutting Assumptions
 
 | Assumption | Evidence | Impact |
@@ -96,6 +106,7 @@ pod, PVC-backed web root, route lookup, and `ostree` tooling.
 | Repo-managed Quay exists. | Pipeline tasks and docs use Quay route and `quay-rfe-setup` secret by default; Plan 0004 allows `rfe-pipelines` registry consumers to use an external pre-created image path. | Quay setup remains managed-reference; generic registry provisioning is deferred. |
 | Repo-managed Nexus exists. | Kickstart upload, auto ISO upload, and legacy downloader paths expect Nexus credentials and repositories; Plan 0004 parameterizes produced-artifact Nexus endpoint values and allows pipeline-driven Nexus upload to be disabled. | Nexus remains optional produced-artifact storage and must not become a modern Image Builder VM boot prerequisite. |
 | Internal HTTPD exists for serving artifacts. | HTTPD chart and Ansible roles produce or discover HTTPD routes, locate writable pods, and run OSTree publication through the HTTPD web root. | HTTPD remains managed-reference until a later serving contract replaces pod execution, writable storage, and `ostree` tooling assumptions. |
+| Current RHEL target is explicit but chart-local. | Plan 0006 added `rhelTarget` values and render-time validation to `charts/rfe-pipelines` and `charts/image-builder-vm`. | RHEL 8 remains the default. RHEL 9 Image Builder continuity must supply explicit refs, RHSM repositories, VM metadata, and DataSource values. RHEL 10 image-mode/bootc cannot use current composer workflows. |
 | Pipelines operator and Tekton ClusterTasks exist. | Pipelines use `git-clone` `ClusterTask`; docs require `tkn`. | BYO Pipelines mode needs prerequisites and validation. Managed mode must install what workflows require. |
 | Service account access is local and cross-namespace. | `rbac`, `quay`, `user-mgmt`, `machineset`, `odf`, and `pulp` charts render RoleBindings or ClusterRoleBindings. | Access should be explicit, capability-based, and separate from workload deployment. |
 

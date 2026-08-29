@@ -6,3 +6,4 @@ _compose_statuses:
   - FINISHED
   - RUNNING
   - WAITING
+image_builder_compose_type: rhel-edge-container

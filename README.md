@@ -186,6 +186,17 @@ The older PVC/Nexus base-image staging path is retained only as explicit legacy/
 not create the `redhat-image-downloader-ansible-job`, do not reference `rfe-rhel-media`, and do not require Nexus to
 boot the Image Builder VM. Nexus may still be used by artifact publication workflows.
 
+#### RHEL Target Boundary
+
+The current workflow defaults are explicitly RHEL 8-oriented Image Builder defaults. The retained runtime uses an
+Image Builder VM, `osbuild-composer`, `composer-cli`, OSTree publication, kickstarts, and autoboot ISO generation.
+RHEL 10 image-mode and bootc are not implemented by the current charts and fail Helm validation when selected.
+
+Focused examples are available in:
+
+* `examples/values/rhel-target-image-builder-rhel8.yaml`
+* `examples/values/rhel-target-image-mode-unsupported.yaml`
+
 #### Disabling Components
 
 If you want to disable the deployment/management of certain components (for example, if you want to bring your own cluster that has ODF already installed), set `disabled: true` in the chart's values file. For example, to disable ODF, modify `examples/values/local/application-manager.yaml` and disable the deployment of the operator and the application (example shows only relevant fields):

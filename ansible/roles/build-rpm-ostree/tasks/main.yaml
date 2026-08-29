@@ -51,7 +51,7 @@
   block:
     - name: Compose Image
       command: >
-        composer-cli -j compose start {{ blueprint_name}} rhel-edge-commit
+        composer-cli -j compose start {{ blueprint_name}} {{ image_builder_compose_type }}
       register: composed_image
 
     - name: Set Build Number

@@ -26,7 +26,7 @@ spec:
       type: string
     - name: rhsm-repositories
       description: JSON object with list of RHEL Repos
-      default: {{ $.Values.pipelines.rhsm_repositories | toJson | b64enc }}
+      default: {{ include "rfePipelines.rhsmRepositories" . | toJson | b64enc }}
       type: string
     - name: tooling-git-revision
       description: Tooling Repository URL Reference
@@ -110,6 +110,8 @@ spec:
           value: $(params.additional-content-sources)
         - name: rhsm-repositories
           value: $(params.rhsm-repositories)
+        - name: compose-type
+          value: {{ $.Values.rhelTarget.imageBuilder.composeTypes.container | quote }}
       runAfter:
         - "rfe-oci-quay-repository"
       workspaces:

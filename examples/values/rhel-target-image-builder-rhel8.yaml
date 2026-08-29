@@ -1,0 +1,20 @@
+rhelTarget:
+  major: 8
+  architecture: x86_64
+  imageBuilder:
+    enabled: true
+    ostreeRef: rhel/8/x86_64/edge
+    composeTypes:
+      container: rhel-edge-container
+      installer: rhel-edge-installer
+    repositories:
+      - rhel-8-for-x86_64-baseos-rpms
+      - rhel-8-for-x86_64-appstream-rpms
+  imageMode:
+    enabled: false
+
+imageBuilderVM:
+  dataVolumeSource: datasource
+  dataSource:
+    name: rhel8
+    namespace: openshift-virtualization-os-images

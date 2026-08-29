@@ -7,6 +7,50 @@
 {{- $registryMode := $registry.mode | default "managed-reference" -}}
 {{- $artifactRepositoryMode := $artifactRepository.mode | default "managed-reference" -}}
 {{- $httpServingMode := $httpServing.mode | default "managed-reference" -}}
+{{- $target := .Values.rhelTarget | default dict -}}
+{{- $targetMajor := toString ($target.major | default "8") -}}
+{{- $architecture := $target.architecture | default "" -}}
+{{- $imageBuilder := $target.imageBuilder | default dict -}}
+{{- $composeTypes := $imageBuilder.composeTypes | default dict -}}
+{{- $imageMode := $target.imageMode | default dict -}}
+{{- if eq $targetMajor "10" -}}
+{{- fail "rhelTarget.major=10 is not supported by the current Image Builder rpm-ostree workflows; RHEL 10 requires a future image-mode/bootc implementation" -}}
+{{- end -}}
+{{- if not (has $targetMajor (list "8" "9")) -}}
+{{- fail "rhelTarget.major must be one of: 8, 9" -}}
+{{- end -}}
+{{- if empty $architecture -}}
+{{- fail "rhelTarget.architecture is required" -}}
+{{- end -}}
+{{- if $imageMode.enabled -}}
+{{- fail "rhelTarget.imageMode.enabled=true is unsupported until a future bootc/image-mode workflow is implemented" -}}
+{{- end -}}
+{{- if and (hasKey $imageBuilder "enabled") (not $imageBuilder.enabled) -}}
+{{- fail "rhelTarget.imageBuilder.enabled=false is unsupported while the current pipelines use Image Builder rpm-ostree workflows" -}}
+{{- end -}}
+{{- if empty $imageBuilder.ostreeRef -}}
+{{- fail "rhelTarget.imageBuilder.ostreeRef is required when Image Builder workflows are enabled" -}}
+{{- end -}}
+{{- if not (contains (printf "rhel/%s/%s/" $targetMajor $architecture) $imageBuilder.ostreeRef) -}}
+{{- fail (printf "rhelTarget.imageBuilder.ostreeRef must match rhelTarget.major=%s and rhelTarget.architecture=%s" $targetMajor $architecture) -}}
+{{- end -}}
+{{- if empty $composeTypes.container -}}
+{{- fail "rhelTarget.imageBuilder.composeTypes.container is required when Image Builder workflows are enabled" -}}
+{{- end -}}
+{{- if empty $composeTypes.installer -}}
+{{- fail "rhelTarget.imageBuilder.composeTypes.installer is required when Image Builder workflows are enabled" -}}
+{{- end -}}
+{{- if eq (len ($imageBuilder.repositories | default list)) 0 -}}
+{{- fail "rhelTarget.imageBuilder.repositories must include at least one RHSM repository when Image Builder workflows are enabled" -}}
+{{- end -}}
+{{- range $repo := ($imageBuilder.repositories | default list) -}}
+{{- if and (ne $targetMajor "8") (contains "rhel-8-" $repo) -}}
+{{- fail (printf "rhelTarget.imageBuilder.repositories contains RHEL 8 repository %q but rhelTarget.major=%s" $repo $targetMajor) -}}
+{{- end -}}
+{{- if and (ne $targetMajor "9") (contains "rhel-9-" $repo) -}}
+{{- fail (printf "rhelTarget.imageBuilder.repositories contains RHEL 9 repository %q but rhelTarget.major=%s" $repo $targetMajor) -}}
+{{- end -}}
+{{- end -}}
 {{- if not (has $registryMode (list "managed-reference" "external")) -}}
 {{- fail "publicationEndpoints.registry.mode must be one of: managed-reference, external" -}}
 {{- end -}}

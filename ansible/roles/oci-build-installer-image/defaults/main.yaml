@@ -1,1 +1,3 @@
 blueprint_remote_dir: /opt/rfe-rpm-ostree
+image_builder_compose_type: rhel-edge-installer
+ostree_ref: rhel/8/x86_64/edge

@@ -54,7 +54,7 @@
 
 - name: Compose Image
   ansible.builtin.command: >
-    composer-cli -j compose start-ostree {{ blueprint_name }} rhel-edge-container
+    composer-cli -j compose start-ostree {{ blueprint_name }} {{ image_builder_compose_type }}
   changed_when: composed_image.rc == 0
   register: composed_image
 

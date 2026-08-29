@@ -151,9 +151,7 @@
   community.general.rhsm_repository:
     state: enabled
     purge: yes
-    name:
-      - rhel-8-for-x86_64-appstream-rpms
-      - rhel-8-for-x86_64-baseos-rpms
+    name: "{{ image_builder_rhsm_repositories | default(['rhel-8-for-x86_64-appstream-rpms', 'rhel-8-for-x86_64-baseos-rpms']) }}"
 
 - name: Install Packages
   ansible.builtin.dnf:

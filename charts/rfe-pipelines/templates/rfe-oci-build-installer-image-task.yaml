@@ -28,6 +28,14 @@ spec:
     - name: rhsm-repositories
       description: JSON object with list of RHEL Repos
       type: string
+    - name: ostree-ref
+      description: OSTree ref to embed in the installer compose
+      default: {{ .Values.rhelTarget.imageBuilder.ostreeRef | quote }}
+      type: string
+    - name: compose-type
+      description: Image Builder compose type for the installer image
+      default: {{ .Values.rhelTarget.imageBuilder.composeTypes.installer | quote }}
+      type: string
   results:
     - name: build-commit-id
       description: Commit ID of the Build
@@ -50,6 +58,8 @@ spec:
             -e image_builder_host_output_file=$(results.image-builder-host.path) \
             -e additional_content_sources=$(params.additional-content-sources) \
             -e rhsm_repositories=$(params.rhsm-repositories) \
+            -e ostree_ref=$(params.ostree-ref) \
+            -e image_builder_compose_type=$(params.compose-type) \
             playbooks/oci-build-installer-image.yaml
       command:
         - /bin/bash

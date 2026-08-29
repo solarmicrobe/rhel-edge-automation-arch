@@ -1,0 +1,12 @@
+rhelTarget:
+  major: 10
+  architecture: x86_64
+  imageBuilder:
+    enabled: false
+    ostreeRef: rhel/10/x86_64/edge
+    composeTypes:
+      container: edge-container
+      installer: edge-installer
+    repositories: []
+  imageMode:
+    enabled: true

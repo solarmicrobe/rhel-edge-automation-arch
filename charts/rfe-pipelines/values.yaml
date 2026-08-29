@@ -13,6 +13,21 @@ commonCR:
 ansibleRunner:
   image: image-registry.openshift-image-registry.svc:5000/rfe/ansible-rfe-runner:latest
 
+rhelTarget:
+  major: 8
+  architecture: x86_64
+  imageBuilder:
+    enabled: true
+    ostreeRef: rhel/8/x86_64/edge
+    composeTypes:
+      container: rhel-edge-container
+      installer: rhel-edge-installer
+    repositories:
+      - rhel-8-for-x86_64-baseos-rpms
+      - rhel-8-for-x86_64-appstream-rpms
+  imageMode:
+    enabled: false
+
 publicationEndpoints:
   registry:
     mode: managed-reference
@@ -52,13 +67,6 @@ pipelines:
     kickstarts:
       repoURL: https://github.com/redhat-cop/rhel-edge-automation-arch.git
       targetRevision: kickstarts
-  rhsm_repositories: |
-    {
-      "repositories": [
-        "rhel-8-for-x86_64-baseos-rpms",
-        "rhel-8-for-x86_64-appstream-rpms"
-      ]
-    }
   additional_content_sources: |
     {
       "sources": {

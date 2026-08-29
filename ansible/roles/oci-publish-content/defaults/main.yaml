@@ -2,3 +2,4 @@ httpd_web_root: /var/www/html
 httpd_route_name: httpd
 httpd_route_namespace: rfe
 stage_namespace: rfe
+ostree_ref: rhel/8/x86_64/edge

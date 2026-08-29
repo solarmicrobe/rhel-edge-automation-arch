@@ -2,6 +2,9 @@
 
 This guide will help familiarize yourself with the process of building your first RHEL for Edge image using this architecture. By the end of this walk-through, you will:
 
+This walkthrough uses the current RHEL 8 Image Builder and OSTree defaults. Literal `rhel/8/x86_64/edge` references
+should match the rendered `rhelTarget.imageBuilder.ostreeRef` value for the pipeline configuration you deploy.
+
 * Understand the primary components in the architecture
 * Build a RHEL for Edge image from a Blueprint
 * Publish a Kickstart file referencing the previously built RHEL for Edge image
@@ -416,4 +419,3 @@ curl localhost:5000
 Additional details on interacting with the application can be found in the [project repository](https://github.com/IBM/MAX-Weather-Forecaster)
 
 You have now successfully completed the walkthrough!
-

@@ -5,10 +5,12 @@
         - content_path_output_file
         - quay_image_path
         - quay_image_tag
+        - ostree_ref
     that:
       - content_path_output_file is defined
       - quay_image_path is defined
       - quay_image_tag is defined
+      - ostree_ref is defined
 
 - name: Set Quay Image Path Basename
   ansible.builtin.set_fact:
@@ -73,7 +75,7 @@
       - "pull"
       - "--mirror"
       - "{{ quay_image_path_basename }}-{{ quay_image_tag }}"
-      - "rhel/8/x86_64/edge"
+      - "{{ ostree_ref }}"
 
 - name: Update OSTree Summary Data
   ansible.builtin.command:

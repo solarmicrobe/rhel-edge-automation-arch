@@ -5,10 +5,14 @@
       - blueprint_source_dir
       - build_commit_id_output_file
       - ostree_repo_url
+      - ostree_ref
+      - image_builder_compose_type
     that:
       - blueprint_source_dir is defined
       - build_commit_id_output_file is defined
       - ostree_repo_url is defined
+      - ostree_ref is defined
+      - image_builder_compose_type is defined
 
 - name: Validate Blueprint Directory and Blueprint File Exists
   ansible.builtin.stat:
@@ -51,7 +55,7 @@
 
 - name: Compose Image
   ansible.builtin.command: >
-    composer-cli -j compose start-ostree --ref rhel/8/x86_64/edge --url {{ ostree_repo_url }} {{ blueprint_name }} rhel-edge-installer
+    composer-cli -j compose start-ostree --ref {{ ostree_ref }} --url {{ ostree_repo_url }} {{ blueprint_name }} {{ image_builder_compose_type }}
   register: composed_image
 
 - name: Set Build Commit ID
