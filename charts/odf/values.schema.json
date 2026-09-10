@@ -23,14 +23,6 @@
                   "type": "string"
                 }
               }
-            },
-            "byo": {
-              "type": "object",
-              "properties": {
-                "createObjects": {
-                  "type": "boolean"
-                }
-              }
             }
           },
           "if": {

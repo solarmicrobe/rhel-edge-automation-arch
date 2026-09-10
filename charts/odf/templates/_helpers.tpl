@@ -4,13 +4,6 @@
 {{- default "managed" (get $odf "mode") -}}
 {{- end -}}
 
-{{- define "odf.byoCreateObjects" -}}
-{{- $components := default dict .Values.components -}}
-{{- $odf := default dict (get $components "odf") -}}
-{{- $byo := default dict (get $odf "byo") -}}
-{{- if (get $byo "createObjects") -}}true{{- else -}}false{{- end -}}
-{{- end -}}
-
 {{- define "odf.validateLifecycle" -}}
 {{- $mode := include "odf.lifecycleMode" . -}}
 {{- if not (has $mode (list "managed" "byo" "disabled")) -}}
@@ -20,5 +13,5 @@
 
 {{- define "odf.renderManagedResources" -}}
 {{- $mode := include "odf.lifecycleMode" . -}}
-{{- if or (eq $mode "managed") (and (eq $mode "byo") (eq (include "odf.byoCreateObjects" .) "true")) -}}true{{- else -}}false{{- end -}}
+{{- if eq $mode "managed" -}}true{{- else -}}false{{- end -}}
 {{- end -}}

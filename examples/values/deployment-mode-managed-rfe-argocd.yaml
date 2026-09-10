@@ -11,13 +11,9 @@ components:
       namespace: rfe-gitops
       project: rfe
       server: https://kubernetes.default.svc
-    byo:
-      createObjects: false
   odf:
     mode: byo
     connection:
       storageClassName: ocs-storagecluster-ceph-rbd
       objectBucketClaimStorageClassName: openshift-storage.noobaa.io
       bucketNamespace: rfe
-    byo:
-      createObjects: false

@@ -103,8 +103,6 @@ components:
   odf:
     mode: byo
     connection: {}
-    byo:
-      createObjects: false
 ```
 
 Allowed `components.<name>.mode` values:
@@ -112,19 +110,20 @@ Allowed `components.<name>.mode` values:
 | Value | Meaning |
 |:------|:--------|
 | `managed` | This repository owns installation or rendered component objects for the component, plus downstream wiring required by the RFE stack. |
-| `byo` | The component already exists. This repository consumes `components.<name>.connection` values and does not install or mutate the component unless `components.<name>.byo.createObjects` is explicitly `true`. |
+| `byo` | The component already exists. This repository consumes `components.<name>.connection` values and does not install or mutate the component. |
 | `disabled` | This repository neither installs nor references the component. Dependent workflows must also be disabled or configured to use another component. |
 
-`components.<name>.byo.createObjects` is a boolean and defaults to `false` for every component. When false, BYO means
-connection-only. When true, chart implementation may render explicitly named integration objects inside the
-BYO component, such as a GitOps `AppProject` or an ODF bucket claim. It must not be used as a broad permission to run
-setup jobs, create users, create repositories, or install operators.
+Lifecycle mode is intentionally limited to ownership state. It must not carry a generic BYO mutation switch such as
+`components.<name>.byo.createObjects`. When a BYO component needs this repository to create an integration object, the
+value must be named for the object or integration being created, such as `argocd.appProject.create`, a future
+`objectStorage.bucketClaims.create`, or a component-specific patch flag. Object-specific create switches must default
+to `false` in BYO mode unless an explicit mode rule says otherwise.
 
 The first implementation set is intentionally narrow:
 
 - `components.gitops`: the ArgoCD/GitOps control plane selected by `deployment.mode`;
 - `permissions`: top-level permission ownership for the GitOps and workload access layer;
-- `components.odf`: the model shared component for lifecycle, connection, and BYO object-creation semantics.
+- `components.odf`: the model shared component for lifecycle and connection semantics.
 
 Later implementation should extend the same shape to components that directly affect current workflows and existing plan
 boundaries:
@@ -142,16 +141,16 @@ Separate component connection from component mutation.
 Examples:
 
 - BYO GitOps may provide an ArgoCD namespace, project name, and controller service account. Creating GitOps objects such
-  as `AppProject` or `Application` resources requires `components.gitops.byo.createObjects: true`; permission grants are
-  still controlled by `permissions.mode`.
+  as `AppProject` resources requires the existing object-specific `argocd.appProject.create: true`; permission grants
+  are still controlled by `permissions.mode`.
 - BYO ODF may provide bucket or storage-class details without creating ODF itself.
 - BYO Quay or registry may provide a pre-created image path without creating organizations or repositories.
 - BYO Nexus may provide credentials and repository URLs without running setup jobs.
 - BYO ArgoCD may receive `Application` resources without this repo creating control-plane RBAC unless permissions are
   explicitly managed.
 
-Every BYO object-creation switch should default to false unless a mode-specific `auto` rule intentionally resolves it
-to true.
+Every BYO object-creation switch should be object-specific and should default to false unless a mode-specific `auto`
+rule intentionally resolves it to true. Do not add a generic `components.<name>.byo.createObjects` switch.
 
 ### 5. Artifact Rebuild Avoidance
 
@@ -170,8 +169,8 @@ Focused values API examples for this checkpoint live in:
 - `examples/values/deployment-mode-reference-full-stack.yaml`
 
 These examples prove the top-level shape and naming. The first implementation checkpoint wires only the GitOps
-permission boundary and `components.odf` lifecycle subset; later units must extend the same values API to the broader
-component set.
+permission boundary and `components.odf` lifecycle subset; later units must extend the same lifecycle and
+object-specific creation rules to the broader component set.
 
 ## Non-Goals
 
@@ -212,8 +211,8 @@ Chart implementation units must add schema or template validation that rejects:
 - `deployment.mode` outside `managed-rfe-argocd | byo-cluster-argocd | byo-rfe-argocd | reference-full-stack`;
 - `permissions.mode` outside `auto | managed | external`;
 - `components.<name>.mode` outside `managed | byo | disabled`;
-- non-boolean `components.<name>.byo.createObjects`;
 - missing required `components.<name>.connection` values when a component is `byo` and downstream workflows need it.
+- object-specific creation flags with non-boolean values.
 
 ## Risks
 
@@ -232,5 +231,5 @@ Chart implementation units must add schema or template validation that rejects:
 - Resolved by checkpoint `values-doc-examples`: use `permissions.mode`.
 - Resolved by checkpoint `values-doc-examples`: first set is `components.gitops`, `permissions`, and
   `components.odf`.
-- Resolved by checkpoint `values-doc-examples`: use the common boolean shape `components.<name>.byo.createObjects`,
-  default `false`.
+- Resolved after checkpoint review: do not use generic `components.<name>.byo.createObjects`; keep lifecycle to
+  `components.<name>.mode` plus `connection`, and use object-specific create flags for any BYO mutation.
