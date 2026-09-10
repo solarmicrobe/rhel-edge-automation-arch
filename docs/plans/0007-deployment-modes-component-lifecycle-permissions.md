@@ -4,6 +4,10 @@
 
 Planned for the `custom` branch.
 
+Checkpoint `values-doc-examples` locks the values API names and semantics below. The first implementation checkpoint
+wires those names only where needed to prove GitOps permission ownership and ODF lifecycle behavior before broader
+component migration.
+
 ## Goal
 
 Make the repository's top-level deployment intent explicit: deploy an RFE workload stack managed by a configured GitOps
@@ -48,12 +52,19 @@ silently installing shared platform services or mutating BYO components.
 
 Define the values contract for the top-level deployment mode.
 
-Candidate model:
-
 ```yaml
 deployment:
-  mode: managed-rfe-argocd # managed-rfe-argocd | byo-cluster-argocd | byo-rfe-argocd | reference-full-stack
+  mode: managed-rfe-argocd
 ```
+
+Allowed values:
+
+| Value | Meaning |
+|:------|:--------|
+| `managed-rfe-argocd` | Preferred modern mode. This repository creates and manages the namespace-scoped RFE ArgoCD control plane and renders the RFE workload stack into it. |
+| `byo-cluster-argocd` | The cluster already has a shared or cluster-level ArgoCD control plane. This repository may target it, but must not install or mutate the control plane unless an explicit BYO object switch allows a named integration object. |
+| `byo-rfe-argocd` | The RFE namespace already has an ArgoCD control plane. This repository may target it, but must not install or mutate the control plane unless an explicit BYO object switch allows a named integration object. |
+| `reference-full-stack` | Compatibility mode for the historical reference environment that installs the broad managed stack used by the existing examples. New modern examples should not use this unless they intentionally demonstrate the legacy reference path. |
 
 The implementation should preserve existing rendered behavior where compatibility requires it, but modern examples
 should prefer `managed-rfe-argocd`.
@@ -62,18 +73,24 @@ should prefer `managed-rfe-argocd`.
 
 Add a top-level switch that controls whether this repository renders permission resources.
 
-Candidate model:
-
 ```yaml
 permissions:
-  mode: auto # auto | managed | external
+  mode: auto
 ```
+
+Allowed values:
+
+| Value | Meaning |
+|:------|:--------|
+| `auto` | Resolve permission ownership from `deployment.mode`. |
+| `managed` | Render this repository's least-privilege, capability-scoped permission resources. This must not imply default `cluster-admin`. |
+| `external` | Do not render permission resources owned by this repository; the platform owner or existing GitOps administrator provides them. |
 
 `auto` should resolve to:
 
 - `external` for BYO ArgoCD modes;
 - `managed` for `managed-rfe-argocd`;
-- explicit reference behavior for `reference-full-stack`.
+- explicit historical reference behavior for `reference-full-stack`.
 
 Managed permissions must remain least-privilege and capability-scoped. Do not introduce default `cluster-admin`.
 
@@ -84,19 +101,36 @@ Introduce a lifecycle shape for shared and RFE-owned components:
 ```yaml
 components:
   odf:
-    mode: byo # managed | byo | disabled
+    mode: byo
     connection: {}
     byo:
       createObjects: false
 ```
 
-The first implementation should focus on components that directly affect current workflows and existing plan
+Allowed `components.<name>.mode` values:
+
+| Value | Meaning |
+|:------|:--------|
+| `managed` | This repository owns installation or rendered component objects for the component, plus downstream wiring required by the RFE stack. |
+| `byo` | The component already exists. This repository consumes `components.<name>.connection` values and does not install or mutate the component unless `components.<name>.byo.createObjects` is explicitly `true`. |
+| `disabled` | This repository neither installs nor references the component. Dependent workflows must also be disabled or configured to use another component. |
+
+`components.<name>.byo.createObjects` is a boolean and defaults to `false` for every component. When false, BYO means
+connection-only. When true, chart implementation may render explicitly named integration objects inside the
+BYO component, such as a GitOps `AppProject` or an ODF bucket claim. It must not be used as a broad permission to run
+setup jobs, create users, create repositories, or install operators.
+
+The first implementation set is intentionally narrow:
+
+- `components.gitops`: the ArgoCD/GitOps control plane selected by `deployment.mode`;
+- `permissions`: top-level permission ownership for the GitOps and workload access layer;
+- `components.odf`: the model shared component for lifecycle, connection, and BYO object-creation semantics.
+
+Later implementation should extend the same shape to components that directly affect current workflows and existing plan
 boundaries:
 
-- ArgoCD/GitOps control plane;
 - OpenShift Virtualization and Image Builder VM;
 - OpenShift Pipelines;
-- ODF/NooBaa storage;
 - Quay or external registry;
 - Nexus produced-artifact storage;
 - HTTPD serving/runtime target.
@@ -107,6 +141,9 @@ Separate component connection from component mutation.
 
 Examples:
 
+- BYO GitOps may provide an ArgoCD namespace, project name, and controller service account. Creating GitOps objects such
+  as `AppProject` or `Application` resources requires `components.gitops.byo.createObjects: true`; permission grants are
+  still controlled by `permissions.mode`.
 - BYO ODF may provide bucket or storage-class details without creating ODF itself.
 - BYO Quay or registry may provide a pre-created image path without creating organizations or repositories.
 - BYO Nexus may provide credentials and repository URLs without running setup jobs.
@@ -122,6 +159,19 @@ When workflows can consume an existing source image or artifact, prefer that ove
 
 The first pass should inventory current rebuild assumptions and map them to lifecycle or endpoint values. Avoid
 rewriting the artifact model in this slice unless a narrow values change is required to stop an unnecessary rebuild.
+
+### 6. Checkpoint Examples
+
+Focused values API examples for this checkpoint live in:
+
+- `examples/values/deployment-mode-managed-rfe-argocd.yaml`
+- `examples/values/deployment-mode-byo-cluster-argocd.yaml`
+- `examples/values/deployment-mode-byo-rfe-argocd.yaml`
+- `examples/values/deployment-mode-reference-full-stack.yaml`
+
+These examples prove the top-level shape and naming. The first implementation checkpoint wires only the GitOps
+permission boundary and `components.odf` lifecycle subset; later units must extend the same values API to the broader
+component set.
 
 ## Non-Goals
 
@@ -150,6 +200,21 @@ git diff --check
 Add negative render checks for invalid deployment modes, invalid permission modes, and missing BYO connection values
 for every component lifecycle value implemented in this slice.
 
+For the documentation/example portion of this checkpoint, validation is limited to non-mutating local checks:
+
+```sh
+ruby -e 'require "yaml"; ARGV.each { |f| YAML.load_file(f) }; puts "ok"' examples/values/deployment-mode-*.yaml
+git diff --check
+```
+
+Chart implementation units must add schema or template validation that rejects:
+
+- `deployment.mode` outside `managed-rfe-argocd | byo-cluster-argocd | byo-rfe-argocd | reference-full-stack`;
+- `permissions.mode` outside `auto | managed | external`;
+- `components.<name>.mode` outside `managed | byo | disabled`;
+- non-boolean `components.<name>.byo.createObjects`;
+- missing required `components.<name>.connection` values when a component is `byo` and downstream workflows need it.
+
 ## Risks
 
 - The existing examples still encode the old reference full-stack deployment deeply.
@@ -163,7 +228,9 @@ for every component lifecycle value implemented in this slice.
 
 ## Open Decisions
 
-- Should the top-level value be `deployment.mode`, `profile.mode`, or another existing style?
-- Should permission ownership be named `permissions.mode`, `access.mode`, or scoped under a GitOps key?
-- Which components should be implemented in the first lifecycle pass versus documented for later passes?
-- Should BYO object creation use one common shape, such as `byo.createObjects`, or component-specific names?
+- Resolved by checkpoint `values-doc-examples`: use `deployment.mode`.
+- Resolved by checkpoint `values-doc-examples`: use `permissions.mode`.
+- Resolved by checkpoint `values-doc-examples`: first set is `components.gitops`, `permissions`, and
+  `components.odf`.
+- Resolved by checkpoint `values-doc-examples`: use the common boolean shape `components.<name>.byo.createObjects`,
+  default `false`.

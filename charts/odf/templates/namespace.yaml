@@ -1,0 +1,19 @@
+{{- include "odf.validateLifecycle" . -}}
+{{- if eq (include "odf.lifecycleMode" .) "managed" }}
+{{- range .Values.namespaces.namespaces }}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+{{- if .annotations }}
+  annotations:
+    {{- tpl (toYaml .annotations) $ | nindent 4 }}
+{{- end }}
+  name: {{ .name }}
+  labels:
+    {{- include "common.labels.labels" $ | nindent 4 }}
+{{- if .labels }}
+    {{- tpl (toYaml .labels) $ | nindent 4 }}
+{{- end }}
+{{- end }}
+{{- end }}

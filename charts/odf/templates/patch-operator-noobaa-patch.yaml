@@ -1,3 +1,5 @@
+{{- include "odf.validateLifecycle" . -}}
+{{- if eq (include "odf.renderManagedResources" .) "true" }}
 apiVersion: redhatcop.redhat.io/v1alpha1
 kind: Patch
 metadata:
@@ -22,3 +24,4 @@ spec:
               - backingStores:
                   - noobaa-pv-backing-store
       patchType: application/merge-patch+json
+{{- end }}

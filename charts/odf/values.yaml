@@ -1,4 +1,10 @@
 ---
+components:
+  odf:
+    mode: managed
+    connection: {}
+    byo:
+      createObjects: false
 namespaces:
   namespaces:
     - name: openshift-storage

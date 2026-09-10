@@ -1,3 +1,11 @@
 ---
+deployment:
+  mode: managed-rfe-argocd
+
+permissions:
+  mode: auto
+
 argocd:
   defaultPolicy: "role:admin"
+  clusterAdmin:
+    create: false

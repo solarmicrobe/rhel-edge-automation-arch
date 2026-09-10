@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/schema#",
+  "type": "object",
+  "properties": {
+    "deployment": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": [
+            "managed-rfe-argocd",
+            "byo-cluster-argocd",
+            "byo-rfe-argocd",
+            "reference-full-stack"
+          ]
+        }
+      }
+    },
+    "permissions": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "managed",
+            "external"
+          ]
+        }
+      }
+    }
+  }
+}

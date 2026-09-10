@@ -1,0 +1,66 @@
+{
+  "$schema": "http://json-schema.org/schema#",
+  "type": "object",
+  "properties": {
+    "components": {
+      "type": "object",
+      "properties": {
+        "odf": {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "type": "string",
+              "enum": [
+                "managed",
+                "byo",
+                "disabled"
+              ]
+            },
+            "connection": {
+              "type": "object",
+              "properties": {
+                "storageClassName": {
+                  "type": "string"
+                }
+              }
+            },
+            "byo": {
+              "type": "object",
+              "properties": {
+                "createObjects": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "if": {
+            "properties": {
+              "mode": {
+                "const": "byo"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "connection": {
+                "type": "object",
+                "required": [
+                  "storageClassName"
+                ],
+                "properties": {
+                  "storageClassName": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                }
+              }
+            },
+            "required": [
+              "connection"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

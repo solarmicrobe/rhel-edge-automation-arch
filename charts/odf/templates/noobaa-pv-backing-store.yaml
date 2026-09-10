@@ -1,3 +1,5 @@
+{{- include "odf.validateLifecycle" . -}}
+{{- if eq (include "odf.renderManagedResources" .) "true" }}
 apiVersion: noobaa.io/v1alpha1
 kind: BackingStore
 metadata:
@@ -15,3 +17,4 @@ spec:
       requests:
         storage: 50Gi
   type: pv-pool
+{{- end }}

@@ -1,3 +1,5 @@
+{{- include "odf.validateLifecycle" . -}}
+{{- if eq (include "odf.lifecycleMode" .) "managed" }}
 apiVersion: noobaa.io/v1alpha1
 kind: NooBaa
 metadata:
@@ -23,3 +25,4 @@ spec:
   loadBalancerSourceSubnets: {}
   security:
     kms: {}
+{{- end }}

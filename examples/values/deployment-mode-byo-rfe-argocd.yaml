@@ -1,0 +1,24 @@
+deployment:
+  mode: byo-rfe-argocd
+
+permissions:
+  mode: external
+
+components:
+  gitops:
+    mode: byo
+    connection:
+      namespace: rfe-gitops
+      project: rfe
+      server: https://kubernetes.default.svc
+      controllerServiceAccount: argocd-application-controller
+    byo:
+      createObjects: true
+  odf:
+    mode: byo
+    connection:
+      storageClassName: ocs-storagecluster-ceph-rbd
+      objectBucketClaimStorageClassName: openshift-storage.noobaa.io
+      bucketNamespace: rfe
+    byo:
+      createObjects: false
