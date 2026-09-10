@@ -97,6 +97,13 @@ plan implements that separate workflow. Plan 0004 `publicationEndpoints` remains
 the modern Image Builder VM root disk remains OpenShift Virtualization `DataSource` backed without PVC/Nexus base-image
 staging.
 
+Plan 0007 planning update: the next modernization boundary is deployment-mode defaults, component lifecycle, and
+permission ownership. The intended modern default is a repository-created namespace-scoped RFE ArgoCD with
+least-privilege repository-managed permissions, while BYO cluster or namespace ArgoCD modes default to externally
+managed permissions. Shared platform capabilities such as ODF should support managed and BYO modes. Creating objects
+inside a BYO component must be explicitly enabled rather than implied by selecting BYO. Future artifact workflow
+changes should avoid rebuilding images or artifacts when configured existing sources are sufficient.
+
 ## Cross-Cutting Assumptions
 
 | Assumption | Evidence | Impact |
@@ -107,6 +114,9 @@ staging.
 | Repo-managed Nexus exists. | Kickstart upload, auto ISO upload, and legacy downloader paths expect Nexus credentials and repositories; Plan 0004 parameterizes produced-artifact Nexus endpoint values and allows pipeline-driven Nexus upload to be disabled. | Nexus remains optional produced-artifact storage and must not become a modern Image Builder VM boot prerequisite. |
 | Internal HTTPD exists for serving artifacts. | HTTPD chart and Ansible roles produce or discover HTTPD routes, locate writable pods, and run OSTree publication through the HTTPD web root. | HTTPD remains managed-reference until a later serving contract replaces pod execution, writable storage, and `ostree` tooling assumptions. |
 | Current RHEL target is explicit but chart-local. | Plan 0006 added `rhelTarget` values and render-time validation to `charts/rfe-pipelines` and `charts/image-builder-vm`. | RHEL 8 remains the default. RHEL 9 Image Builder continuity must supply explicit refs, RHSM repositories, VM metadata, and DataSource values. RHEL 10 image-mode/bootc cannot use current composer workflows. |
+| Permission ownership should follow ArgoCD ownership by default. | Plan 0001 separated ArgoCD targeting/access, and the next lifecycle slice will add a top-level permission ownership switch. | BYO ArgoCD modes should default to externally managed permissions; managed RFE ArgoCD should default to repository-managed least-privilege permissions. |
+| Shared components may already exist. | Components such as ODF, Pipelines, Quay, Nexus, HTTPD, and OpenShift Virtualization can be cluster/platform services rather than RFE-owned services. | Required capabilities should be satisfied by either managed installation or BYO connection details; creating objects inside BYO services must have explicit opt-in switches. |
+| Existing artifacts may be sufficient. | Plan 0004 introduced external registry endpoint consumption, and Plan 0003 externalized selected image consumers. | Later workflow changes should prefer configured existing sources over rebuilding when an image or artifact does not need to be produced by this repo. |
 | Pipelines operator and Tekton ClusterTasks exist. | Pipelines use `git-clone` `ClusterTask`; docs require `tkn`. | BYO Pipelines mode needs prerequisites and validation. Managed mode must install what workflows require. |
 | Service account access is local and cross-namespace. | `rbac`, `quay`, `user-mgmt`, `machineset`, `odf`, and `pulp` charts render RoleBindings or ClusterRoleBindings. | Access should be explicit, capability-based, and separate from workload deployment. |
 
@@ -150,6 +160,15 @@ These are proposed slices, not implementation approval.
    - Compare the retained Image Builder VM path against bootc/image-mode and `bootc-image-builder`.
    - Do not replace the VM during the ArgoCD/access, component lifecycle, or DataSource cleanup slices.
 
+7. Implement deployment modes, component lifecycle, and permission ownership.
+   - Make `managed-rfe-argocd` the preferred modern default profile while retaining BYO cluster and BYO namespace
+     ArgoCD modes.
+   - Add a top-level permission ownership switch whose automatic default is external for BYO ArgoCD and managed for
+     repository-created RFE ArgoCD.
+   - Model shared components with `managed | byo | disabled`, including explicit connection values for BYO and explicit
+     object-creation switches inside BYO services.
+   - Prefer existing artifacts and image sources over rebuilds when workflows can consume them directly.
+
 ## Open Questions
 
 - Is Pulp still in scope for the modern path, or only for reference/full-stack deployments?
@@ -159,3 +178,6 @@ These are proposed slices, not implementation approval.
 - Should `ansible-rfe-runner` ultimately be produced by this repo, pulled from a maintained image, or built by a
   Pipeline once lifecycle profiles exist?
 - Which exact OpenShift Virtualization DataSource names and namespaces should be supported by default for the retained Image Builder VM?
+- Which shared components should be required in the first lifecycle implementation, and which should remain deferred?
+- What exact value name should represent permission ownership: `permissions.mode`, `access.mode`, or a more specific
+  control-plane name?

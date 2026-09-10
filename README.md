@@ -24,7 +24,7 @@ Our design will focus on the following topics:
 
 The overall architecture is still being defined. We have split out "Above Site" components (things like RFE build orchestration and CI/CD tooling) and "Below Site" (the actual RFE deployments). All Above Site components will be hosted on OpenShift.
 
-The modernization direction for this fork is documented in [ADR 0001: Modern RFE Architecture Direction](docs/adr/0001-modern-rfe-architecture.md), with current implementation assumptions tracked in the [current-state inventory](docs/current-state-inventory.md). The first modernization slice is tracked in [Plan 0001: ArgoCD Targeting, AppProject, and Access Separation](docs/plans/0001-argocd-targeting-appproject-access.md), and the Image Builder VM DataSource slice is tracked in [Plan 0002: Image Builder VM DataSource Modernization](docs/plans/0002-image-builder-datasource-modernization.md).
+The modernization direction for this fork is documented in [ADR 0001: Modern RFE Architecture Direction](docs/adr/0001-modern-rfe-architecture.md), with current implementation assumptions tracked in the [current-state inventory](docs/current-state-inventory.md). Modernization slices and goal prompts are tracked under [docs/plans](docs/plans/), including [Plan 0007: Deployment Modes, Component Lifecycle, and Permissions](docs/plans/0007-deployment-modes-component-lifecycle-permissions.md).
 
 ![Overall Architecture](/images/overall-architecture.png)
 
