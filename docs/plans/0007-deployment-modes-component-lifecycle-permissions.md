@@ -2,7 +2,8 @@
 
 ## Status
 
-Planned for the `custom` branch.
+First GitOps/permission/ODF checkpoint implemented and reviewed on the `custom` branch. Broader component lifecycle
+migration remains deferred.
 
 Checkpoint `values-doc-examples` locks the values API names and semantics below. The first implementation checkpoint
 wires those names only where needed to prove GitOps permission ownership and ODF lifecycle behavior before broader
@@ -233,3 +234,47 @@ Chart implementation units must add schema or template validation that rejects:
   `components.odf`.
 - Resolved after checkpoint review: do not use generic `components.<name>.byo.createObjects`; keep lifecycle to
   `components.<name>.mode` plus `connection`, and use object-specific create flags for any BYO mutation.
+
+## Reviewed Continuation Checkpoint (2026-10-02)
+
+The first component set remains `components.gitops`, GitOps permission ownership, and `components.odf`.
+Review found that the original ArgoCD/ODF checkpoint did not connect the values API to Application Manager or
+ArgoCD Integration. This continuation closes that boundary without migrating the remaining shared services.
+
+Implemented behavior:
+
+- `components.gitops.mode` must agree with the deployment mode (`managed` for managed/reference deployments,
+  `byo` for BYO deployments), or be `disabled`. Disabled GitOps renders no control-plane/integration resources;
+  Application Manager rejects it when workload Applications are configured.
+- GitOps `connection.namespace`, `project`, and `server` supply Application targeting and integration targeting.
+  Application-specific overrides still take precedence. Existing `argocd.target` values remain supported by
+  Application Manager and ArgoCD Integration. The install chart requires the explicit connection for BYO mode.
+- Application Manager forwards deployment, permission, and component values to the first component set and nested
+  Application Managers. It uses the actual chart path, including `common.chartPath`, and does not forward this
+  contract to external Helm repository charts or unrelated workload charts. Parent ownership values override child
+  ownership values; other child values are preserved.
+- For a generated Bootstrap Application, the same boundary is also forwarded into its `application-manager` and
+  `argocdIntegration` dependency values. When rendering Bootstrap directly, Helm's normal subchart scoping applies:
+  put the boundary under those keys. Root Bootstrap values alone do not configure its dependencies.
+- `permissions.mode=auto` resolves to external for BYO and managed for managed/reference deployment modes.
+  External ownership suppresses integration Roles, RoleBindings, ClusterRoles, and ClusterRoleBindings even if
+  their local creation flags are enabled. Managed ownership permits the existing explicit grant flags; it does
+  not automatically enable them. Controller identity can come from `connection.controllerServiceAccount`.
+- Namespace grant defaults enumerate RFE workload resources and verbs instead of wildcard API/resource access.
+  Operators must scope grant namespaces and adjust rules for additional workload kinds. Named cluster capabilities
+  remain explicit. No default path grants `cluster-admin`; the historical reference grant still requires explicit
+  `argocd.clusterAdmin.create=true` and targets the configured control-plane namespace.
+- `argocd.appProject.create` stays an independent boolean opt-in, including under external permission ownership.
+  Grant creation flags and the reference cluster-admin flag also reject non-boolean values.
+- ODF BYO/disabled renders remain empty and BYO storage-class validation is retained. No bucket creation switch or
+  broader storage consumer migration is introduced here.
+
+Verification: `ruby tests/plan0007-render.rb` runs positive and negative local Helm renders and manifest assertions
+for the above boundary, the four deployment examples, ODF lifecycle, retained VM DataSource sourcing, and configured
+runner-image reuse. Bootstrap checks rebuild local file dependencies in a temporary chart copy, remove copied
+symlinks, and use non-secret SSH fixtures because this checkout has broken local credential symlinks. No generated
+manifests or credentials are committed. `git diff --check` is also required.
+
+Remaining scope: OpenShift Virtualization, Pipelines, registry, Nexus, HTTPD, Image Builder VM lifecycle, broader
+workflow dependency validation, and deployment entry-point automation still need separate bounded migration units.
+This checkpoint does not claim an end-to-end modern full-stack deployment or live-cluster validation.

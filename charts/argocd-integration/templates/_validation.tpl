@@ -1,3 +1,35 @@
+{{/* Resolve ownership and connection before validating or rendering resources. */}}
+{{- define "argocd-integration.resolvePlan0007" -}}
+{{- $deployment := default dict .Values.deployment -}}
+{{- $mode := default "managed-rfe-argocd" (get $deployment "mode") -}}
+{{- $permissions := default dict .Values.permissions -}}
+{{- $ownership := default "auto" (get $permissions "mode") -}}
+{{- if eq $ownership "auto" -}}
+{{- $ownership = ternary "external" "managed" (has $mode (list "byo-cluster-argocd" "byo-rfe-argocd")) -}}
+{{- end -}}
+{{- $components := default dict .Values.components -}}
+{{- $gitops := default dict (get $components "gitops") -}}
+{{- $connection := default dict (get $gitops "connection") -}}
+{{- $expected := ternary "byo" "managed" (has $mode (list "byo-cluster-argocd" "byo-rfe-argocd")) -}}
+{{- $lifecycle := default $expected (get $gitops "mode") -}}
+{{- if and (ne $lifecycle "disabled") (ne $lifecycle $expected) -}}
+{{- fail "components.gitops.mode contradicts deployment.mode" -}}
+{{- end -}}
+{{- range $key := list "namespace" "project" "server" -}}
+{{- with get $connection $key -}}{{- $_ := set $.Values.argocd.target $key . -}}{{- end -}}
+{{- end -}}
+{{- if and (ne $lifecycle "disabled") (or (has $mode (list "byo-cluster-argocd" "byo-rfe-argocd")) (eq (get $gitops "mode") "byo")) -}}
+{{- range $key := list "namespace" "project" "server" -}}
+{{- if not (get $.Values.argocd.target $key) -}}{{- fail (printf "components.gitops.connection.%s or argocd.target.%s is required for BYO GitOps" $key $key) -}}{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- range $grant := list .Values.argocd.access.namespaceGrants .Values.argocd.access.clusterCapabilities -}}
+{{- with get $connection "controllerServiceAccount" -}}{{- if not $grant.controllerServiceAccount -}}{{- $_ := set $grant "controllerServiceAccount" . -}}{{- end -}}{{- end -}}
+{{- if or (eq $ownership "external") (eq (get $gitops "mode") "disabled") -}}{{- $_ := set $grant "create" false -}}{{- end -}}
+{{- end -}}
+{{- if eq (get $gitops "mode") "disabled" -}}{{- $_ := set .Values.argocd.appProject "create" false -}}{{- end -}}
+{{- end -}}
+
 {{/*
 Validate AppProject input when AppProject creation is enabled.
 */}}

@@ -1,3 +1,9 @@
+deployment:
+  mode: managed-rfe-argocd
+
+permissions:
+  mode: auto
+
 argocd:
   target:
     namespace: ""
@@ -26,12 +32,27 @@ argocd:
       controllerServiceAccount: ""
       namespaces: []
       rules:
-        - apiGroups:
-            - "*"
-          resources:
-            - "*"
-          verbs:
-            - "*"
+        - apiGroups: [""]
+          resources: [configmaps, secrets, services, serviceaccounts, persistentvolumeclaims, pods]
+          verbs: [get, list, watch, create, update, patch, delete]
+        - apiGroups: [apps]
+          resources: [deployments, statefulsets, daemonsets, replicasets]
+          verbs: [get, list, watch, create, update, patch, delete]
+        - apiGroups: [batch]
+          resources: [jobs, cronjobs]
+          verbs: [get, list, watch, create, update, patch, delete]
+        - apiGroups: [route.openshift.io]
+          resources: [routes]
+          verbs: [get, list, watch, create, update, patch, delete]
+        - apiGroups: [tekton.dev]
+          resources: [pipelines, tasks, pipelineruns, taskruns]
+          verbs: [get, list, watch, create, update, patch, delete]
+        - apiGroups: [kubevirt.io]
+          resources: [virtualmachines, virtualmachineinstances]
+          verbs: [get, list, watch, create, update, patch, delete]
+        - apiGroups: [cdi.kubevirt.io]
+          resources: [datavolumes]
+          verbs: [get, list, watch, create, update, patch, delete]
     clusterCapabilities:
       create: false
       name: ""

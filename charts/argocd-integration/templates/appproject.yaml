@@ -1,3 +1,4 @@
+{{- include "argocd-integration.resolvePlan0007" . -}}
 {{- include "argocd-integration.validateAppProject" . -}}
 {{- if .Values.argocd.appProject.create }}
 apiVersion: argoproj.io/v1alpha1

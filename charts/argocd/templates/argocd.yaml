@@ -4,7 +4,7 @@ apiVersion: argoproj.io/v1beta1
 kind: ArgoCD
 metadata:
   name: {{ template "common.names.fullname" . }}
-  namespace: {{ template "common.names.namespace" $ }}
+  namespace: {{ dig "gitops" "connection" "namespace" "" (default dict .Values.components) | default (include "common.names.namespace" .) }}
 spec:
   repo:
     resources:

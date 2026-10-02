@@ -7,13 +7,13 @@ metadata:
 subjects:
   - kind: ServiceAccount
     name: {{ template "common.names.fullname" . }}-argocd-application-controller
-    namespace: {{ template "common.names.namespace" $ }}
+    namespace: {{ dig "gitops" "connection" "namespace" "" (default dict .Values.components) | default (include "common.names.namespace" .) }}
   - kind: ServiceAccount
     name: {{ template "common.names.fullname" . }}-argocd-applicationset-controller
-    namespace: {{ template "common.names.namespace" $ }}
+    namespace: {{ dig "gitops" "connection" "namespace" "" (default dict .Values.components) | default (include "common.names.namespace" .) }}
   - kind: ServiceAccount
     name: {{ template "common.names.fullname" . }}-argocd-server
-    namespace: {{ template "common.names.namespace" $ }}
+    namespace: {{ dig "gitops" "connection" "namespace" "" (default dict .Values.components) | default (include "common.names.namespace" .) }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole

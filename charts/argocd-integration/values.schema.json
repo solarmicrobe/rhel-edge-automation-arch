@@ -67,11 +67,32 @@
     "argocd": {
       "type": "object",
       "properties": {
-        "clusterAdmin": {
+        "appProject": {
           "type": "object",
           "properties": {
             "create": {
               "type": "boolean"
+            }
+          }
+        },
+        "access": {
+          "type": "object",
+          "properties": {
+            "namespaceGrants": {
+              "type": "object",
+              "properties": {
+                "create": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "clusterCapabilities": {
+              "type": "object",
+              "properties": {
+                "create": {
+                  "type": "boolean"
+                }
+              }
             }
           }
         }

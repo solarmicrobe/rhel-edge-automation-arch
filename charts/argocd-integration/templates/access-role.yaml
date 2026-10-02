@@ -1,3 +1,4 @@
+{{- include "argocd-integration.resolvePlan0007" . -}}
 {{- include "argocd-integration.validateNamespaceGrants" . -}}
 {{- if .Values.argocd.access.namespaceGrants.create }}
 {{- range $namespace := .Values.argocd.access.namespaceGrants.namespaces }}

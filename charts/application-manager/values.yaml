@@ -1,3 +1,6 @@
+# Optional Plan 0007 values: deployment.mode, permissions.mode, components.gitops
+# (mode and connection). Omitted deployment mode resolves to managed-rfe-argocd.
+# Ownership values are forwarded to the first component set and nested managers.
 argocd:
   target:
     namespace: ""

@@ -63,19 +63,6 @@
           }
         }
       }
-    },
-    "argocd": {
-      "type": "object",
-      "properties": {
-        "clusterAdmin": {
-          "type": "object",
-          "properties": {
-            "create": {
-              "type": "boolean"
-            }
-          }
-        }
-      }
     }
   }
 }
