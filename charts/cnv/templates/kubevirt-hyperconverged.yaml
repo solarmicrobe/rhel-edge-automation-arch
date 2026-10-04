@@ -1,3 +1,4 @@
+{{- if eq .Values.components.virtualization.mode "managed" }}
 apiVersion: hco.kubevirt.io/v1beta1
 kind: HyperConverged
 metadata:
@@ -18,3 +19,4 @@ spec:
   uninstallStrategy: {{ .Values.kubevirt_hyperconverged_cr.uninstallStrategy }}
   workloadUpdateStrategy:
     {{- toYaml .Values.kubevirt_hyperconverged_cr.workloadUpdateStrategy | nindent 4 }}
+{{- end }}

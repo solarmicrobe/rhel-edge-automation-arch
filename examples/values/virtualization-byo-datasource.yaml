@@ -1,0 +1,9 @@
+# Consume an existing platform and boot image; create no virtualization platform objects.
+components:
+  virtualization:
+    mode: byo
+    connection:
+      namespace: openshift-cnv
+      dataSource:
+        name: rhel8
+        namespace: openshift-virtualization-os-images

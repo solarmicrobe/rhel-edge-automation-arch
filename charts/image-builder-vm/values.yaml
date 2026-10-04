@@ -60,3 +60,9 @@ imageBuilderVM:
 
 gitRepository: https://github.com/redhat-cop/rhel-edge-automation-arch.git
 gitBranch: main
+
+# Existing platform connection; managed preserves the reference behavior.
+components:
+  virtualization:
+    mode: managed
+    connection: {}

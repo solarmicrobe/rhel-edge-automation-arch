@@ -1,7 +1,19 @@
 {{- define "imageBuilderVM.validate" -}}
 {{- $vm := .Values.imageBuilderVM -}}
 {{- $sourceMode := $vm.dataVolumeSource | default "datasource" -}}
-{{- $dataSource := $vm.dataSource | default dict -}}
+{{- $virtualization := .Values.components.virtualization -}}
+{{- if eq $virtualization.mode "disabled" -}}
+{{- fail "components.virtualization.mode=disabled cannot support the managed Image Builder VM" -}}
+{{- end -}}
+{{- $connectionSource := $virtualization.connection.dataSource | default dict -}}
+{{- if and (eq $virtualization.mode "byo") (eq $sourceMode "datasource") -}}
+{{- range $field := list "name" "namespace" -}}
+{{- if empty (get $connectionSource $field) -}}
+{{- fail (printf "components.virtualization.connection.dataSource.%s is required for BYO virtualization with imageBuilderVM.dataVolumeSource=datasource" $field) -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- $dataSource := mergeOverwrite (deepCopy ($vm.dataSource | default dict)) $connectionSource -}}
 {{- $legacyPvcSource := $vm.legacyPvcSource | default dict -}}
 {{- $legacyPvcEnabled := $legacyPvcSource.enabled | default false -}}
 {{- $target := .Values.rhelTarget | default dict -}}

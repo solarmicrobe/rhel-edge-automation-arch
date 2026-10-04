@@ -2,8 +2,9 @@
 
 ## Status
 
-First GitOps/permission/ODF checkpoint implemented and reviewed on the `custom` branch. Broader component lifecycle
-migration remains deferred.
+GitOps/permission/ODF checkpoint implemented and reviewed on the `custom` branch. The bounded Virtualization
+connection checkpoint below extends lifecycle ownership to CNV platform objects and retained VM DataSource wiring.
+Broader component lifecycle migration remains deferred.
 
 Checkpoint `values-doc-examples` locks the values API names and semantics below. The first implementation checkpoint
 wires those names only where needed to prove GitOps permission ownership and ODF lifecycle behavior before broader
@@ -278,3 +279,36 @@ manifests or credentials are committed. `git diff --check` is also required.
 Remaining scope: OpenShift Virtualization, Pipelines, registry, Nexus, HTTPD, Image Builder VM lifecycle, broader
 workflow dependency validation, and deployment entry-point automation still need separate bounded migration units.
 This checkpoint does not claim an end-to-end modern full-stack deployment or live-cluster validation.
+
+## Virtualization Connection Checkpoint (2026-10-04)
+
+This bounded unit adds `components.virtualization.mode: managed | byo | disabled` to `charts/cnv` and
+`charts/image-builder-vm`. Managed is the compatibility default. CNV managed rendering retains its Namespace and
+HyperConverged manifests, including the former namespace dependency's labels. BYO and disabled CNV render no
+resources. BYO CNV requires the nonempty string `components.virtualization.connection.namespace` identifying the
+existing platform; its optional `connection.dataSource.name` and `namespace` must be nonempty strings when supplied.
+
+The retained managed VM consumes `components.virtualization.connection.dataSource.name` and `namespace` ahead of
+`imageBuilderVM.dataSource`. With no connection override, its existing DataSource defaults remain unchanged.
+BYO virtualization with `imageBuilderVM.dataVolumeSource=datasource` requires both connection DataSource fields
+explicitly, rather than silently relying on managed reference defaults. The VM rejects disabled virtualization.
+The explicit legacy PVC source (`dataVolumeSource=pvc` plus `legacyPvcSource.enabled=true`) remains supported and
+does not require DataSource connection fields because it does not consume a DataSource. VM lifecycle ownership is
+still deferred; BYO virtualization does not mean BYO Image Builder VM. The repository still creates the VM and
+runs its guest setup Job; BYO virtualization only suppresses CNV platform resources.
+
+Application Manager forwards the existing ownership boundary to the actual `charts/cnv` and
+`charts/image-builder-vm` paths, including `common.chartPath`. Parent ownership values take precedence and other
+child values remain intact. No virtualization platform setup objects or generic BYO mutation flags are added.
+The historical `cnv-operator` Application uses the separate generic operator subscription chart: users choosing
+BYO or disabled virtualization must explicitly disable that Application in their deployment values. This unit
+controls CNV platform objects and VM boot-source wiring; it does not implicitly suppress operator installation.
+
+The focused example is `examples/values/virtualization-byo-datasource.yaml`. Local verification compares managed
+CNV and VM manifests against the starting revision and exercises lifecycle validation, empty BYO output, required
+connections, invalid enum/type values, DataSource overrides, disabled dependency rejection, legacy PVC compatibility,
+and Application Manager forwarding. The original 58 render checks remain included. No cluster commands are run.
+
+Remaining scope: VM lifecycle, Pipelines, registry, Nexus, HTTPD, broader workflow dependency validation, operator
+entry-point selection, and modern deployment entry-point automation. This unit does not claim full Plan 0007
+completion or live-cluster validation.

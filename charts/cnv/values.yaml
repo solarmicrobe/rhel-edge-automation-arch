@@ -40,3 +40,9 @@ namespaces:
         openshift.io/display-name: OpenShift Container Native Virtualization
       labels:
         openshift.io/cluster-monitoring: "true"
+
+# Existing platform connection; managed preserves the reference behavior.
+components:
+  virtualization:
+    mode: managed
+    connection: {}

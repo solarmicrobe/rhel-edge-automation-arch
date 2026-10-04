@@ -153,7 +153,7 @@ Injects Global Values
 {{- $chartValues := deepCopy (default dict .chart.values) -}}
 {{- $path := include "application-manager.chartPath" . -}}
 {{- $repoChart := include "application-manager.chartRepoPath" . -}}
-{{- if and (not $repoChart) (has $path (list "charts/application-manager" "charts/bootstrap" "charts/argocd" "charts/argocd-integration" "charts/odf")) -}}
+{{- if and (not $repoChart) (has $path (list "charts/application-manager" "charts/bootstrap" "charts/argocd" "charts/argocd-integration" "charts/odf" "charts/cnv" "charts/image-builder-vm")) -}}
 {{- range $key := list "deployment" "permissions" "components" -}}
 {{- if hasKey $.Values $key -}}
 {{- $_ := set $chartValues $key (mergeOverwrite (default dict (get $chartValues $key)) (deepCopy (get $.Values $key))) -}}

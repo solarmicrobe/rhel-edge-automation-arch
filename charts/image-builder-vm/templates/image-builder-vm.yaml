@@ -1,4 +1,5 @@
 {{- include "imageBuilderVM.validate" . -}}
+{{- $dataSource := mergeOverwrite (deepCopy .Values.imageBuilderVM.dataSource) (.Values.components.virtualization.connection.dataSource | default dict) -}}
 {{- $i := (.Values.imageBuilderVM.replicas | int) -}}
 {{- range until $i -}}
 {{- $instance_name := printf "image-builder-%03d" . -}}
@@ -42,8 +43,8 @@ spec:
         {{- if eq $.Values.imageBuilderVM.dataVolumeSource "datasource" }}
         sourceRef:
           kind: DataSource
-          name: {{ $.Values.imageBuilderVM.dataSource.name }}
-          namespace: {{ $.Values.imageBuilderVM.dataSource.namespace }}
+          name: {{ $dataSource.name }}
+          namespace: {{ $dataSource.namespace }}
         storage:
           resources:
             requests:

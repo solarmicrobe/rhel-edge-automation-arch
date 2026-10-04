@@ -1,0 +1,18 @@
+{{- if eq .Values.components.virtualization.mode "managed" }}
+{{- range .Values.namespaces.namespaces }}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+{{- if .annotations }}
+  annotations:
+    {{- tpl (toYaml .annotations) $ | nindent 4 }}
+{{- end }}
+  name: {{ .name }}
+  labels:
+    {{- include "common.labels.labels" (dict "Chart" (dict "Name" "namespaces" "Version" "0.1.0") "Release" $.Release "Values" $.Values.namespaces) | nindent 4 }}
+{{- if .labels }}
+    {{- tpl (toYaml .labels) $ | nindent 4 }}
+{{- end }}
+{{- end }}
+{{- end }}

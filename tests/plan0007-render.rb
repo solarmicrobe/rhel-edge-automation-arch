@@ -1,4 +1,4 @@
-# Local, non-mutating Helm contract checks for the first Plan 0007 component set.
+# Local, non-mutating Helm contract checks for implemented Plan 0007 boundaries.
 require 'yaml'
 require 'open3'
 require 'tmpdir'
@@ -88,6 +88,39 @@ bootstrap_values = YAML.load(docs.first.dig('spec', 'source', 'helm', 'values'))
   assert(bootstrap_values.dig(child, 'deployment', 'mode') == 'byo-cluster-argocd', 'bootstrap subchart ownership lost')
 end
 
+
+# Virtualization platform ownership and retained VM boot source.
+virtualization_byo = File.join(ROOT, 'examples/values/virtualization-byo-datasource.yaml')
+source_ref = ->(docs) { docs.find { |d| d['kind'] == 'VirtualMachine' }.dig('spec', 'dataVolumeTemplates', 0, 'spec', 'sourceRef') }
+assert(source_ref.call(render('image-builder-vm')) == {'kind' => 'DataSource', 'name' => 'rhel8', 'namespace' => 'openshift-virtualization-os-images'}, 'default VM DataSource changed')
+assert(source_ref.call(render('image-builder-vm', '-f', virtualization_byo, '--set', 'components.virtualization.connection.dataSource.name=custom-rhel,components.virtualization.connection.dataSource.namespace=existing-images')) == {'kind' => 'DataSource', 'name' => 'custom-rhel', 'namespace' => 'existing-images'}, 'BYO VM DataSource ignored')
+render('image-builder-vm', '--set', 'components.virtualization.mode=disabled', succeeds: false)
+render('image-builder-vm', '--set', 'components.virtualization.mode=byo', succeeds: false)
+%w[name namespace].each do |field|
+  render('image-builder-vm', '-f', virtualization_byo, '--set', "components.virtualization.connection.dataSource.#{field}=", succeeds: false)
+end
+# The explicitly enabled legacy PVC source does not consume a DataSource.
+legacy = render('image-builder-vm', '--set', 'components.virtualization.mode=byo,imageBuilderVM.dataVolumeSource=pvc,imageBuilderVM.legacyPvcSource.enabled=true')
+assert(source_ref.call(legacy).nil?, 'legacy PVC source became DataSource-backed')
+%w[image-builder-vm].each do |chart|
+  render(chart, '--set', 'components.virtualization.mode=invalid', succeeds: false)
+  render(chart, '--set', 'components.virtualization.mode=true', succeeds: false)
+  render(chart, '--set', 'components.virtualization.connection.dataSource.name=42', succeeds: false)
+  render(chart, '--set', 'components.virtualization.connection.dataSource.namespace=false', succeeds: false)
+end
+%w[cnv image-builder-vm].each do |chart|
+  docs = render('application-manager', '--set', "common.chartPath=charts/#{chart},charts.consumer.destinationNamespace=rfe,components.virtualization.mode=byo,components.virtualization.connection.namespace=openshift-cnv")
+  child_values = YAML.load(docs.first.dig('spec', 'source', 'helm', 'values'))
+  assert(child_values.dig('components', 'virtualization', 'mode') == 'byo', "#{chart} ownership lost through common.chartPath")
+end
+
+docs = render('application-manager', '--set', 'components.virtualization.mode=byo,components.virtualization.connection.namespace=existing-cnv,charts.cnv.values.components.virtualization.mode=managed,charts.cnv.values.retained=true,charts.unrelated.name=httpd')
+cnv_app = docs.find { |d| d.dig('spec', 'source', 'path') == 'charts/cnv' }
+cnv_values = YAML.load(cnv_app.dig('spec', 'source', 'helm', 'values'))
+assert(cnv_values.dig('components', 'virtualization', 'mode') == 'byo' && cnv_values['retained'], 'parent ownership precedence or unrelated child values changed')
+unrelated = docs.find { |d| d.dig('spec', 'source', 'path') == 'charts/httpd' }
+assert(!YAML.load(unrelated.dig('spec', 'source', 'helm', 'values')).key?('components'), 'virtualization boundary leaked to unrelated chart')
+
 Dir.mktmpdir('plan0007-render-') do |dir|
   FileUtils.cp_r(File.join(ROOT, 'charts'), dir)
   staged = File.join(dir, 'charts')
@@ -99,6 +132,19 @@ Dir.mktmpdir('plan0007-render-') do |dir|
   %w[image-builder-ssh-private-key image-builder-ssh-public-key].each { |name| File.write(File.join(ssh, name), 'render-test-fixture') }
   _, err, status = Open3.capture3('helm', 'dependency', 'update', File.join(staged, 'bootstrap'))
   raise err unless status.success?
+  _, err, status = Open3.capture3('helm', 'dependency', 'update', File.join(staged, 'cnv'), '--skip-refresh')
+  raise err unless status.success?
+  cnv = render('cnv', chart_root: staged)
+  assert(kinds(cnv).sort == %w[HyperConverged Namespace], 'managed CNV resources changed')
+  assert(cnv.find { |d| d['kind'] == 'Namespace' }.dig('metadata', 'labels', 'helm.sh/chart') == 'namespaces-0.1.0', 'CNV namespace compatibility labels changed')
+  assert(render('cnv', '-f', virtualization_byo, chart_root: staged).empty?, 'BYO CNV renders objects')
+  assert(render('cnv', '--set', 'components.virtualization.mode=disabled', chart_root: staged).empty?, 'disabled CNV renders objects')
+  render('cnv', '--set', 'components.virtualization.mode=byo', succeeds: false, chart_root: staged)
+  render('cnv', '--set', 'components.virtualization.mode=byo,components.virtualization.connection.namespace=', succeeds: false, chart_root: staged)
+  assert(render('cnv', '--set', 'components.virtualization.mode=byo,components.virtualization.connection.namespace=existing-cnv', chart_root: staged).empty?, 'CNV BYO incorrectly requires a DataSource')
+  %w[components.virtualization.mode=invalid components.virtualization.mode=true components.virtualization.connection.namespace=42 components.virtualization.connection.namespace= components.virtualization.connection.dataSource.name=42 components.virtualization.connection.dataSource.namespace=false].each do |setting|
+    render('cnv', '--set', setting, succeeds: false, chart_root: staged)
+  end
   render('bootstrap', chart_root: staged)
   values_file = File.join(dir, 'bootstrap-values.yaml')
   File.write(values_file, YAML.dump(bootstrap_values))
