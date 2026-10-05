@@ -312,3 +312,40 @@ and Application Manager forwarding. The original 58 render checks remain include
 Remaining scope: VM lifecycle, Pipelines, registry, Nexus, HTTPD, broader workflow dependency validation, operator
 entry-point selection, and modern deployment entry-point automation. This unit does not claim full Plan 0007
 completion or live-cluster validation.
+
+## Image Builder Guest Lifecycle Checkpoint (2026-10-04)
+
+`components.imageBuilderVM.mode: managed | byo | disabled` now controls the retained guest independently of
+Virtualization. Managed remains the compatibility default, preserving the VM DataSource, Service and guest setup
+Job manifests. BYO and disabled render no VM-chart resources, including the legacy downloader when its old flags
+are enabled. They bypass managed-only virtualization, boot-source, replica and RHEL guest configuration checks.
+BYO requires explicit nonempty strings `connection.host` (DNS name or IPv4 address) and `connection.sshSecretName`
+(existing Kubernetes Secret name). Values contain references only; the Secret uses the existing `ssh-privatekey`
+key and existing `cloud-user` SSH connection on port 22. The external guest must already provide the supported
+Image Builder tools, repositories and privileges. No guest setup or BYO mutation flag is introduced.
+
+RFE compose pipelines reject disabled guest mode because compose remains mandatory. BYO compose Tasks pass the
+host as quoted JSON extra-vars through an environment variable, and the inventory role directly creates
+`pipeline_target_host` and writes the existing `image-builder-host` result. Both inventory discovery and the
+scheduler's second VMI query are bypassed. The same existing Secret flows through image compose/push and installer
+compose/autoboot ISO tasks; names and results stay stable. BYO adds an image pipeline Secret parameter and compose
+Task environment entries. Managed pipeline manifests retain their previous behavior and output.
+
+Application Manager propagates the ownership boundary to the actual `charts/rfe-pipelines` path, including
+`common.chartPath`. The focused example `examples/values/image-builder-vm-byo.yaml` uses a public dummy host and
+explicitly selects this fork's `custom` tooling revision. BYO requires a compatible tooling revision containing
+this inventory/playbook implementation: the historical default upstream `main` tooling clone does not supply it.
+Default repository references are preserved; operators should pin a verified compatible revision for deployment.
+BYO/disabled virtualization still requires separately disabling the historical `cnv-operator` Application.
+
+Verification: all 128 checks in `ruby tests/plan0007-render.rb` pass, including the original 84 checks, lifecycle
+resource suppression, mode/type/connection rejection, host/Secret task wiring and actual chart-path propagation.
+Managed VM and pipeline parsed manifests match the starting checkpoint. `ruby tests/plan0007-byo-inventory.rb`
+executes the real role locally for DNS/IPv4 hosts and rejects shell punctuation and trailing newline inputs. It
+asserts inventory and host results and checks both scheduler guards, without SSH, cluster API calls or compose.
+Full compose runtime and cluster validation remain unperformed; local installations lack the legacy
+`community.kubernetes` and `infra.osbuild` collections needed by the managed/full-compose paths. No dependencies
+are installed for this unit. `git diff --check` is required before integration.
+
+Plan 0007 remains incomplete: Pipelines platform lifecycle, registry, Nexus, HTTPD, broader workflow dependency
+validation and modern deployment/operator entry-point wiring remain separate bounded units.

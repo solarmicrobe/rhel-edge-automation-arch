@@ -1,3 +1,5 @@
+{{- include "imageBuilderVM.lifecycleValidate" . -}}
+{{- if eq .Values.components.imageBuilderVM.mode "managed" -}}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -63,3 +65,5 @@ spec:
       serviceAccount: rfe-automation
       serviceAccountName: rfe-automation
       terminationGracePeriodSeconds: 30
+
+{{- end -}}

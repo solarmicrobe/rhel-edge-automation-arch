@@ -1,32 +1,29 @@
-- name: Query VirtualMachineInstances
-  community.kubernetes.k8s_info:
-    api_key: "{{ lookup('file', '/var/run/secrets/kubernetes.io/serviceaccount/token') }}"
-    api_version: kubevirt.io/v1
-    ca_cert: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-    host: https://kubernetes.default.svc
-    kind: VirtualMachineInstance
-    label_selectors:
-      - app=image-builder
-    namespace: rfe
-    validate_certs: true
-  delay: 10
-  register: vmi_results
-  retries: 60
-  until:
-    - vmi_results.resources | list | length == (image_builder_replicas | int)
-    - >
-      vmi_results.resources |
-        json_query('[*].status.conditions[?type==`Ready`].status') |
-        flatten |
-        select('match', 'True') |
-        list |
-        length == (image_builder_replicas | int)
+- name: Validate Explicit Image Builder Host
+  ansible.builtin.assert:
+    that:
+      - image_builder_host is string
+      - image_builder_host | length <= 253
+      - image_builder_host is match('^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*\Z')
+    fail_msg: image_builder_host must be a DNS name or IPv4 address
+  when: image_builder_host | default('') | length > 0
 
-- name: Generate In-Memory Inventory of Image Builder VM(s)
+- name: Use Explicit Image Builder Host
   ansible.builtin.add_host:
-    ansible_ssh_host: "{{ item.status.interfaces[0].ipAddress }}"
+    name: pipeline_target_host
+    ansible_ssh_host: "{{ image_builder_host }}"
     ansible_ssh_port: "22"
     groups:
       - builders
-    name: "{{ item.metadata.name }}"
-  loop: "{{ vmi_results.resources }}"
+  when: image_builder_host | default('') | length > 0
+
+- name: Save Explicit Image Builder Host Pipeline Result
+  ansible.builtin.copy:
+    content: "{{ image_builder_host }}"
+    dest: "{{ image_builder_host_output_file }}"
+  when:
+    - image_builder_host | default('') | length > 0
+    - image_builder_host_output_file is defined
+
+- name: Discover Managed Image Builder VMs
+  ansible.builtin.include_tasks: managed.yaml
+  when: image_builder_host | default('') | length == 0

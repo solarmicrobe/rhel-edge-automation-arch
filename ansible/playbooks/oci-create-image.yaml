@@ -9,6 +9,7 @@
   hosts: builders
   roles:
     - role: pipeline-scheduler
+      when: image_builder_host | default('') | length == 0
 
 - name: Create OCI Image
   become: yes

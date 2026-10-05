@@ -19,7 +19,7 @@ spec:
       type: string
     - name: image-builder-secret
       description: Name of the Secret Containing the SSH Key for the Image Builder Host
-      default: "image-builder-ssh-key"
+      default: {{ if eq .Values.components.imageBuilderVM.mode "byo" }}{{ .Values.components.imageBuilderVM.connection.sshSecretName | quote }}{{ else }}"image-builder-ssh-key"{{ end }}
       type: string
     - name: kickstart-url
       description: URL Containing the Kickstart File

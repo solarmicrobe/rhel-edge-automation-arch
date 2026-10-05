@@ -1,3 +1,5 @@
+{{- include "imageBuilderVM.lifecycleValidate" . -}}
+{{- if eq .Values.components.imageBuilderVM.mode "managed" -}}
 {{- include "imageBuilderVM.validate" . -}}
 {{- $dataSource := mergeOverwrite (deepCopy .Values.imageBuilderVM.dataSource) (.Values.components.virtualization.connection.dataSource | default dict) -}}
 {{- $i := (.Values.imageBuilderVM.replicas | int) -}}
@@ -130,3 +132,5 @@ spec:
           serviceAccount:
             serviceAccountName: rfe-automation
 {{ end }}
+
+{{- end -}}

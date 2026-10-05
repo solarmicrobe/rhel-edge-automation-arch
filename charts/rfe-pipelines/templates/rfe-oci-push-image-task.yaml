@@ -16,7 +16,7 @@ spec:
       type: string
     - name: image-builder-secret
       description: Name of the secret containing the SSH key for the image builder
-      default: "image-builder-ssh-key"
+      default: {{ if eq .Values.components.imageBuilderVM.mode "byo" }}{{ .Values.components.imageBuilderVM.connection.sshSecretName | quote }}{{ else }}"image-builder-ssh-key"{{ end }}
       type: string
     - name: build-commit
       description: Commit ID of the Build

@@ -40,6 +40,12 @@ spec:
       description: Existing container image path when using an external registry endpoint
       default: {{ $.Values.publicationEndpoints.registry.imagePath | quote }}
       type: string
+{{- if eq .Values.components.imageBuilderVM.mode "byo" }}
+    - name: image-builder-secret
+      description: Name of the existing SSH key Secret for the Image Builder host
+      default: {{ .Values.components.imageBuilderVM.connection.sshSecretName | quote }}
+      type: string
+{{- end }}
   results:
     - name: build-commit
       description: Commit ID of the Build
@@ -104,6 +110,10 @@ spec:
         name: rfe-oci-build-image
         kind: Task
       params:
+{{- if eq .Values.components.imageBuilderVM.mode "byo" }}
+        - name: image-builder-secret
+          value: $(params.image-builder-secret)
+{{- end }}
         - name: blueprint-dir
           value: /workspace/workspace/blueprints/$(params.blueprint-dir)
         - name: additional-content-sources
@@ -122,6 +132,10 @@ spec:
         name: rfe-oci-push-image
         kind: Task
       params:
+{{- if eq .Values.components.imageBuilderVM.mode "byo" }}
+        - name: image-builder-secret
+          value: $(params.image-builder-secret)
+{{- end }}
         - name: blueprint-dir
           value: /workspace/workspace/blueprints/$(params.blueprint-dir)
         - name: build-commit

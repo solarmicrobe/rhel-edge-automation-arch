@@ -9,6 +9,7 @@
   hosts: builders
   roles:
     - role: pipeline-scheduler
+      when: image_builder_host | default('') | length == 0
 
 - name: Generate RFE Boot ISO Image
   become: yes

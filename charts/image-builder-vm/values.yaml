@@ -63,6 +63,9 @@ gitBranch: main
 
 # Existing platform connection; managed preserves the reference behavior.
 components:
+  imageBuilderVM:
+    mode: managed
+    connection: {}
   virtualization:
     mode: managed
     connection: {}

@@ -16,7 +16,7 @@ spec:
       type: string
     - name: image-builder-secret
       description: Name of the Secret Containing the SSH Key for the Image Builder Host
-      default: "image-builder-ssh-key"
+      default: {{ if eq .Values.components.imageBuilderVM.mode "byo" }}{{ .Values.components.imageBuilderVM.connection.sshSecretName | quote }}{{ else }}"image-builder-ssh-key"{{ end }}
       type: string
     - name: iso-blueprint
       description: Name of the Blueprint to use for the ISO Build (Should not be Customized)
@@ -45,11 +45,19 @@ spec:
     - name: build-installer-image-playbook
       image: {{ .Values.ansibleRunner.image | quote }}
       workingDir: /workspace/workspace
+{{- if eq .Values.components.imageBuilderVM.mode "byo" }}
+      env:
+        - name: IMAGE_BUILDER_CONNECTION
+          value: {{ dict "image_builder_host" .Values.components.imageBuilderVM.connection.host | toJson | quote }}
+{{- end }}
       args:
         - |-
           cd tooling/ansible
           ansible-galaxy collection install -r collections/requirements.yaml
           ansible-playbook \
+{{- if eq .Values.components.imageBuilderVM.mode "byo" }}
+            -e "$IMAGE_BUILDER_CONNECTION" \
+{{- end }}
             -u cloud-user \
             --private-key=/var/secrets/image-builder-ssh/ssh-privatekey \
             -e blueprint_source_dir=$(params.iso-blueprint) \

@@ -1,3 +1,5 @@
+{{- include "imageBuilderVM.lifecycleValidate" . -}}
+{{- if eq .Values.components.imageBuilderVM.mode "managed" -}}
 {{- if and (eq $.Values.imageBuilderVM.dataVolumeSource "pvc") $.Values.imageBuilderVM.legacyPvcSource.enabled -}}
 apiVersion: batch/v1
 kind: Job
@@ -49,4 +51,6 @@ spec:
       serviceAccount: rfe-automation
       serviceAccountName: rfe-automation
       terminationGracePeriodSeconds: 30
+{{- end -}}
+
 {{- end -}}

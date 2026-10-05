@@ -1,4 +1,24 @@
+{{- define "rfePipelines.vmLifecycleValidate" -}}
+{{- $component := .Values.components.imageBuilderVM -}}
+{{- if eq $component.mode "byo" -}}
+{{- range $field := list "host" "sshSecretName" -}}
+{{- if empty (get $component.connection $field) -}}
+{{- fail (printf "components.imageBuilderVM.connection.%s is required for BYO Image Builder VM" $field) -}}
+{{- end -}}
+{{- end -}}
+{{- if not (regexMatch "^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?(\\.[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*$" $component.connection.host) -}}
+{{- fail "components.imageBuilderVM.connection.host must be a DNS name or IPv4 address" -}}
+{{- end -}}
+{{- if not (regexMatch "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$" $component.connection.sshSecretName) -}}
+{{- fail "components.imageBuilderVM.connection.sshSecretName must be a Kubernetes DNS name" -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
 {{- define "rfePipelines.validate" -}}
+{{- include "rfePipelines.vmLifecycleValidate" . -}}
+{{- if eq .Values.components.imageBuilderVM.mode "disabled" -}}
+{{- fail "components.imageBuilderVM.mode=disabled cannot support mandatory compose pipelines" -}}
+{{- end -}}
 {{- $endpoints := .Values.publicationEndpoints | default dict -}}
 {{- $registry := $endpoints.registry | default dict -}}
 {{- $artifactRepository := $endpoints.artifactRepository | default dict -}}

@@ -1,0 +1,14 @@
+# Existing guest must already provide the supported Image Builder tools and repositories.
+components:
+  imageBuilderVM:
+    mode: byo
+    connection:
+      host: builder.example.com
+      sshSecretName: existing-builder-ssh
+  virtualization:
+    mode: disabled
+pipelines:
+  repos:
+    tooling:
+      repoURL: https://github.com/solarmicrobe/rhel-edge-automation-arch.git
+      targetRevision: custom

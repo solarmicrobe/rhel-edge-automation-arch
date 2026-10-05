@@ -150,4 +150,43 @@ Dir.mktmpdir('plan0007-render-') do |dir|
   File.write(values_file, YAML.dump(bootstrap_values))
   render('bootstrap', '-f', values_file, '--set', 'argocdIntegration.enabled=true', chart_root: staged)
 end
+# Image Builder guest ownership and explicit SSH connection.
+vm_byo = File.join(ROOT, 'examples/values/image-builder-vm-byo.yaml')
+%w[byo disabled].each do |mode|
+  args = ['--set', "components.imageBuilderVM.mode=#{mode},components.virtualization.mode=disabled,imageBuilderVM.dataVolumeSource=pvc,imageBuilderVM.legacyPvcSource.enabled=true,rhelTarget.major=10,imageBuilderVM.replicas=0"]
+  args += ['-f', vm_byo] if mode == 'byo'
+  assert(render('image-builder-vm', *args).empty?, "#{mode} guest creates resources or validates managed-only settings")
+end
+%w[image-builder-vm rfe-pipelines].each do |chart|
+  %w[invalid true].each { |mode| render(chart, '--set', "components.imageBuilderVM.mode=#{mode}", succeeds: false) }
+  render(chart, '--set', 'components.imageBuilderVM.mode=byo', succeeds: false)
+  %w[host sshSecretName].each do |field|
+    ['', '42', 'false', 'bad/value', '-leading', 'a..b', 'trailing.', 'a' * 64].each do |value|
+      render(chart, '-f', vm_byo, '--set', "components.imageBuilderVM.connection.#{field}=#{value}", succeeds: false)
+    end
+  end
+end
+render('rfe-pipelines', '--set', 'components.imageBuilderVM.mode=disabled', succeeds: false)
+assert(render('image-builder-vm', '-f', vm_byo, '--set', 'components.imageBuilderVM.connection.host=192.0.2.10').empty?, 'IPv4 BYO host rejected')
+byo_pipelines = render('rfe-pipelines', '-f', vm_byo)
+%w[rfe-oci-build-image rfe-oci-build-installer-image].each do |name|
+  task = byo_pipelines.find { |d| d['kind'] == 'Task' && d.dig('metadata', 'name') == name }
+  step = task.dig('spec', 'steps', 0)
+  assert(YAML.load(step['env'].first['value']) == {'image_builder_host' => 'builder.example.com'}, 'BYO host missing from JSON extra-vars')
+  assert(step['args'].first.include?('-e "$IMAGE_BUILDER_CONNECTION"'), 'BYO host is not safely passed to Ansible')
+  assert(task.dig('spec', 'results').any? { |r| r['name'] == 'image-builder-host' }, 'host result contract changed')
+end
+%w[rfe-oci-build-image rfe-oci-build-installer-image rfe-oci-push-image rfe-oci-build-auto-iso].each do |name|
+  task = byo_pipelines.find { |d| d['kind'] == 'Task' && d.dig('metadata', 'name') == name }
+  assert(task.dig('spec', 'params').find { |p| p['name'] == 'image-builder-secret' }['default'] == 'existing-builder-ssh', 'BYO task secret default lost')
+end
+%w[rfe-oci-image-pipeline rfe-oci-iso-pipeline].each do |name|
+  pipeline = byo_pipelines.find { |d| d['kind'] == 'Pipeline' && d.dig('metadata', 'name') == name }
+  assert(pipeline.dig('spec', 'params').find { |p| p['name'] == 'image-builder-secret' }['default'] == 'existing-builder-ssh', 'BYO pipeline secret default lost')
+  pipeline.dig('spec', 'tasks').select { |task| task['name'].match?(/build-image|push-image|build-installer-image|build-auto-iso/) }.each do |task|
+    assert(task['params'].any? { |p| p['name'] == 'image-builder-secret' && p['value'] == '$(params.image-builder-secret)' }, 'BYO secret not shared across pipeline tasks')
+  end
+end
+app = render('application-manager', '-f', vm_byo, '--set', 'common.chartPath=charts/rfe-pipelines,charts.consumer.destinationNamespace=rfe').first
+assert(YAML.load(app.dig('spec', 'source', 'helm', 'values')).dig('components', 'imageBuilderVM', 'connection', 'host') == 'builder.example.com', 'VM connection lost at actual pipeline chart path')
 puts "#{CHECKS.length} Helm render checks passed"
