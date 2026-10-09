@@ -4,7 +4,7 @@
 
 GitOps/permission/ODF checkpoint implemented and reviewed on the `custom` branch. The bounded Virtualization
 connection and guest checkpoints below extend lifecycle ownership to CNV platform objects and retained VM wiring.
-The Pipelines platform checkpoint is implemented and awaits independent review. Broader component lifecycle
+The Pipelines platform checkpoint is implemented and independently reviewed. Broader component lifecycle
 migration remains deferred.
 
 Checkpoint `values-doc-examples` locks the values API names and semantics below. The first implementation checkpoint
@@ -386,8 +386,18 @@ suppression, mode/type/namespace rejection, mandatory workflow rejection and sel
 dependency installation or paid resource use occurred. CI and live platform/runtime behavior remain unverified.
 
 Continuation budget: start `2026-10-09 11:52:04 UTC`, deadline `2026-10-09 17:52:04 UTC`; checkpoint `1/10`,
-implementation fixes `0/5`. This integration receipt records implementation and local verification only;
-independent review has not occurred, and the parent continuation records the review disposition.
+implementation fixes `0/5`.
+
+Independent local review cycle `1`, checkpoint `pipelines-platform-1`: `STATUS: APPROVE` against base
+`73807b99a20e798fecae7279e05e0836459151ce` and implementation head
+`11f2a7269222929988bcd89e58d552e940552760`. Fresh acceptance, correctness/quality,
+tests/verification and security reviewers all passed with no findings or decision-boundary items. They verified
+managed manifest compatibility, BYO operator/configuration suppression, namespace/type rejection, mandatory
+disabled-workflow rejection and selective Application Manager propagation. Direct review validation passed all
+187 render checks, all four local inventory cases and both scheduler guards, and whitespace checks. Each reviewer
+confirmed the immutable head remained current. No implementation remediation was required. This local review
+does not establish live runtime readiness or a PR approval gate. The separate review-disposition commit changes
+only this plan; the parent continuation verifies and pushes the resulting revision.
 
 Plan 0007 remains incomplete: registry, Nexus, HTTPD, broader workflow dependency validation and modern
 deployment/operator entry-point wiring remain separate bounded units.
