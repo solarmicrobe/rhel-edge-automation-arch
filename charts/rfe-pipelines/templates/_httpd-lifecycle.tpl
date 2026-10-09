@@ -4,17 +4,24 @@
 {{- if not (has $mode (list "managed" "byo" "disabled")) -}}{{- fail "components.httpd.mode must be one of: managed, byo, disabled" -}}{{- end -}}
 {{- $connection := dig "connection" dict $httpd -}}
 {{- if not (kindIs "map" $connection) -}}{{- fail "components.httpd.connection must be an object" -}}{{- end -}}
+{{- $sources := list (dict "values" $connection "path" "components.httpd.connection" "required" (eq $mode "byo")) -}}
+{{- if and .consumer (eq $mode "managed") -}}
+{{- $sources = append $sources (dict "values" (default dict .endpoint) "path" "publicationEndpoints.httpServing" "required" true) -}}
+{{- end -}}
+{{- range $source := $sources -}}
+{{- $connection := $source.values -}}
 {{- range $field := list "routeName" "routeNamespace" "podNamespace" "podLabelSelector" "webRoot" "stageServiceAccountName" -}}
-{{- if and (eq $mode "byo") (empty (get $connection $field)) -}}{{- fail (printf "components.httpd.connection.%s is required for BYO HTTPD" $field) -}}{{- end -}}
+{{- if and $source.required (empty (get $connection $field)) -}}{{- fail (printf "%s.%s is required for HTTPD workflows" $source.path $field) -}}{{- end -}}
 {{- if hasKey $connection $field -}}
 {{- $value := get $connection $field -}}
-{{- if not (kindIs "string" $value) -}}{{- fail (printf "components.httpd.connection.%s must be a string" $field) -}}{{- end -}}
+{{- if not (kindIs "string" $value) -}}{{- fail (printf "%s.%s must be a string" $source.path $field) -}}{{- end -}}
 {{- $pattern := "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$" -}}
 {{- $limit := 63 -}}
 {{- if has $field (list "routeName" "stageServiceAccountName") -}}{{- $pattern = "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$" -}}{{- $limit = 253 -}}{{- end -}}
 {{- if eq $field "podLabelSelector" -}}{{- $pattern = "^[A-Za-z0-9][A-Za-z0-9_.:/-]*=[A-Za-z0-9][A-Za-z0-9_.-]*$" -}}{{- $limit = 253 -}}{{- end -}}
 {{- if eq $field "webRoot" -}}{{- $pattern = "^(/[A-Za-z0-9_-]+)+$" -}}{{- $limit = 4096 -}}{{- end -}}
-{{- if or (gt (len $value) $limit) (not (regexMatch $pattern $value)) -}}{{- fail (printf "components.httpd.connection.%s must be a safe nonempty endpoint value" $field) -}}{{- end -}}
+{{- if or (gt (len $value) $limit) (not (regexMatch $pattern $value)) -}}{{- fail (printf "%s.%s must be a safe nonempty endpoint value" $source.path $field) -}}{{- end -}}
+{{- end -}}
 {{- end -}}
 {{- end -}}
 {{- $consumer := .consumer -}}

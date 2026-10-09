@@ -451,5 +451,13 @@ puts "#{CHECKS.length} Helm render checks including HTTPD passed"
   %w[content.write staging.create].each { |flag| render(chart, '-f', httpd_byo, '--set-string', "publicationEndpoints.httpServing.#{flag}=false", succeeds: false) }
   render(chart, '-f', httpd_byo, '--set', 'components.httpd.connection=false', succeeds: false)
 end
+%w[podNamespace podLabelSelector webRoot].each do |field|
+  ['$(printf shell-injection)', 'bad;command', '`printf shell-injection`'].each do |value|
+    error = render('rfe-pipelines', '--set-string', "publicationEndpoints.httpServing.#{field}=#{value}", succeeds: false)
+    assert(error.include?("publicationEndpoints.httpServing.#{field} must be a safe nonempty endpoint value"), "unsafe managed HTTPD #{field} rejected for wrong reason")
+  end
+  render('rfe-pipelines', '--set', "publicationEndpoints.httpServing.#{field}=42", succeeds: false)
+  render('rfe-pipelines', '--set-string', "publicationEndpoints.httpServing.#{field}=", succeeds: false)
+end
 render('rfe-pipelines', '--set', 'publicationEndpoints.httpServing.podNamespace=other-httpd,publicationEndpoints.httpServing.webRoot=/srv/legacy')
 puts "#{CHECKS.length} complete Helm render checks passed"
