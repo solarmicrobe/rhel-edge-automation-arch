@@ -257,4 +257,59 @@ Dir.mktmpdir('plan0007-pipelines-baseline-') do |dir|
   manager_args = ['--set', 'charts.operator.path=charts/operator,charts.operator.values.operator.name=openshift-pipelines-operator-rh']
   assert(render('application-manager', *manager_args, chart_root: staged) == render('application-manager', *manager_args), 'managed Application manifests changed')
 end
+# Registry lifecycle and explicit publication permission.
+registry_byo = File.join(ROOT, 'examples/values/registry-byo.yaml')
+assert(render('quay', '-f', registry_byo).empty?, 'BYO registry creates service/setup/RBAC')
+assert(render('quay', '--set', 'components.registry.mode=disabled').empty?, 'disabled registry creates objects')
+%w[quay rfe-pipelines application-manager].each do |chart|
+  args = chart == 'application-manager' ? ['--set', 'charts.consumer.path=charts/quay'] : []
+  %w[invalid true].each { |mode| render(chart, *args, '--set', "components.registry.mode=#{mode}", succeeds: false) }
+  render(chart, *args, '--set', 'components.registry.mode=byo', succeeds: false)
+  %w[imagePath publisherSecretName].each do |field|
+    %w[42 false bad;command].each { |value| render(chart, *args, '-f', registry_byo, '--set', "components.registry.connection.#{field}=#{value}", succeeds: false) }
+  end
+end
+render('rfe-pipelines', '-f', registry_byo, '--set', 'publicationEndpoints.registry.image.push=null', succeeds: false)
+render('rfe-pipelines', '--set', 'components.registry.mode=disabled', succeeds: false)
+render('rfe-pipelines', '--set', 'publicationEndpoints.registry.image.push=false', succeeds: false)
+render('rfe-pipelines', '--set-string', 'publicationEndpoints.registry.image.push=false', succeeds: false)
+registry_docs = render('rfe-pipelines', '-f', registry_byo)
+repository = registry_docs.find { |d| d.dig('metadata', 'name') == 'rfe-oci-quay-repository' }
+push = registry_docs.find { |d| d.dig('metadata', 'name') == 'rfe-oci-push-image' }
+assert(!repository['spec'].key?('volumes'), 'BYO repository mounts setup or publisher Secret')
+assert(repository.dig('spec', 'steps', 0, 'args', 0).include?('"$REGISTRY_IMAGE_PATH"') && !repository.to_s.include?('ansible-playbook'), 'BYO repository calls setup/API or allows alternate path')
+assert(repository.dig('spec', 'steps', 0, 'env', 0, 'value') == 'registry.example.com/rfe/edge', 'BYO repository path lost')
+assert(push.dig('spec', 'volumes').none? { |v| v['name'] == 'quay-rfe-setup' }, 'BYO push mounts setup Secret')
+assert(push.dig('spec', 'volumes').find { |v| v['name'] == 'publisher' }.dig('secret', 'secretName') == 'existing-registry-publisher', 'BYO push Secret lost')
+assert(push.dig('spec', 'steps', 0, 'args', 0).include?('quay_image_path="$REGISTRY_IMAGE_PATH"'), 'BYO push accepts alternate image path')
+%w[charts/quay charts/rfe-pipelines].each do |path|
+  app = render('application-manager', '-f', registry_byo, '--set', "common.chartPath=#{path},charts.consumer.destinationNamespace=rfe").first
+  child = YAML.load(app.dig('spec', 'source', 'helm', 'values'))
+  assert(child.dig('components', 'registry', 'mode') == 'byo', 'registry ownership lost at actual chart path')
+  assert(child.dig('publicationEndpoints', 'registry', 'image', 'push') == true, 'publication opt-in lost')
+end
+render('application-manager', '-f', registry_byo, '--set', 'charts.consumer.path=charts/rfe-pipelines,publicationEndpoints.registry.image.push=false', succeeds: false)
+render('application-manager', '-f', registry_byo, '--set-string', 'charts.consumer.path=charts/rfe-pipelines,publicationEndpoints.registry.image.push=false', succeeds: false)
+Dir.mktmpdir('plan0007-registry-baseline-') do |dir|
+  FileUtils.cp_r(File.join(ROOT, 'charts'), dir)
+  staged = File.join(dir, 'charts')
+  %w[quay rfe-pipelines application-manager].each do |chart|
+    files, err, status = Open3.capture3('git', '-C', ROOT, 'ls-tree', '-r', '--name-only', 'cca8beefa7b0b4a473066874846eea4e4ce2fb41', "charts/#{chart}")
+    raise err unless status.success?
+    files.lines.map(&:strip).each do |path|
+      content, err, status = Open3.capture3('git', '-C', ROOT, 'show', "cca8beefa7b0b4a473066874846eea4e4ce2fb41:#{path}")
+      raise err unless status.success?
+      File.write(File.join(dir, path), content)
+    end
+  end
+  FileUtils.rm_f(File.join(staged, 'quay', 'values.schema.json'))
+  %w[quay rfe-pipelines].each { |chart| assert(render(chart, chart_root: staged) == render(chart), "#{chart} complete managed manifests changed") }
+  args = ['--set', 'charts.quay.path=charts/quay']
+  assert(render('application-manager', *args, chart_root: staged) == render('application-manager', *args), 'managed registry Application changed')
+end
+%w[charts/quay charts/rfe-pipelines].each do |path|
+  %w[mode=false mode=invalid connection.imagePath=42 connection.publisherSecretName=false connection.publisherSecretName=bad/name].each do |setting|
+    render('application-manager', '--set', "charts.consumer.path=#{path},charts.consumer.values.components.registry.#{setting}", succeeds: false)
+  end
+end
 puts "#{CHECKS.length} Helm render checks passed"

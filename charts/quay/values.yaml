@@ -36,3 +36,8 @@ setupJob:
   namespace: rfe
 
 serviceAccount: rfe-automation
+
+components:
+  registry:
+    mode: managed
+    connection: {}

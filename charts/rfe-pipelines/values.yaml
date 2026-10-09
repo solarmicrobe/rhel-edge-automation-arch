@@ -34,6 +34,8 @@ publicationEndpoints:
     imagePath: ""
     publisherSecretName: publisher
     setupSecretName: quay-rfe-setup
+    # image.push is optional: managed defaults true; BYO defaults false.
+    # Current mandatory publication pipelines require an explicit true in BYO.
   artifactRepository:
     mode: managed-reference
     disabledResultValue: ""
@@ -79,5 +81,8 @@ components:
     mode: managed
     connection: {}
   imageBuilderVM:
+    mode: managed
+    connection: {}
+  registry:
     mode: managed
     connection: {}

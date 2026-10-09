@@ -58,6 +58,53 @@
               }
             }
           }
+        },
+        "registry": {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "type": "string",
+              "enum": [
+                "managed",
+                "byo",
+                "disabled"
+              ]
+            },
+            "connection": {
+              "type": "object",
+              "properties": {
+                "imagePath": {
+                  "type": "string",
+                  "minLength": 1,
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9.:-]*/[A-Za-z0-9_./-]+$"
+                },
+                "publisherSecretName": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 253,
+                  "pattern": "^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "publicationEndpoints": {
+      "type": "object",
+      "properties": {
+        "registry": {
+          "type": "object",
+          "properties": {
+            "image": {
+              "type": "object",
+              "properties": {
+                "push": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
         }
       }
     }

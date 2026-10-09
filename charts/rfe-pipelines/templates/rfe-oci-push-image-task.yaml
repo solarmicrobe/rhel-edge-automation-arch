@@ -32,6 +32,11 @@ spec:
   steps:
     - name: push-image-playbook
       image: {{ .Values.ansibleRunner.image | quote }}
+      {{- if eq .Values.components.registry.mode "byo" }}
+      env:
+        - name: REGISTRY_IMAGE_PATH
+          value: {{ include "rfePipelines.registryImagePath" . | quote }}
+      {{- end }}
       workingDir: /workspace/workspace
       args:
         - |-
@@ -42,7 +47,11 @@ spec:
             --private-key=/var/secrets/image-builder-ssh/ssh-privatekey \
             -e blueprint_source_dir=$(params.blueprint-dir) \
             -e build_commit_id=$(params.build-commit) \
+            {{- if eq .Values.components.registry.mode "byo" }}
+            -e quay_image_path="$REGISTRY_IMAGE_PATH" \
+            {{- else }}
             -e quay_image_path=$(params.image-path) \
+            {{- end }}
             -e image_tags_output_file=$(results.image-tags.path) \
             -e image_builder_host=$(params.image-builder-host) \
             playbooks/oci-push-image.yaml 
@@ -53,7 +62,7 @@ spec:
         - name: publisher
           mountPath: /var/secrets/publisher
           readOnly: true
-        {{- if eq .Values.publicationEndpoints.registry.mode "managed-reference" }}
+        {{- if eq (include "rfePipelines.registryMode" .) "managed-reference" }}
         - name: quay-rfe-setup
           mountPath: /var/secrets/quay-rfe-setup
           readOnly: true
@@ -65,8 +74,8 @@ spec:
     - name: publisher
       secret:
         defaultMode: 0440
-        secretName: {{ .Values.publicationEndpoints.registry.publisherSecretName | quote }}
-    {{- if eq .Values.publicationEndpoints.registry.mode "managed-reference" }}
+        secretName: {{ (include "rfePipelines.registryPublisherSecret" .) | quote }}
+    {{- if eq (include "rfePipelines.registryMode" .) "managed-reference" }}
     - name: quay-rfe-setup
       secret:
         defaultMode: 0440

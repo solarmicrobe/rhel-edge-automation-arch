@@ -6,6 +6,18 @@
 {{- $ctx := dict "chartName" $chartName "chart" $chart "Values" $.Values -}}
 {{- $path := include "application-manager.chartPath" $ctx -}}
 {{- $repoChart := include "application-manager.chartRepoPath" $ctx -}}
+{{- if and (not $chart.disabled) (not $repoChart) (has $path (list "charts/quay" "charts/rfe-pipelines")) -}}
+{{- $registry := mergeOverwrite (deepCopy (dig "components" "registry" dict (default dict $chart.values))) (deepCopy (dig "registry" dict (default dict $.Values.components))) -}}
+{{- include "application-manager.registryValidate" (dict "registry" $registry) -}}
+{{- if eq $path "charts/rfe-pipelines" -}}
+{{- if eq (get $registry "mode") "disabled" -}}{{- fail "components.registry.mode=disabled cannot support mandatory image publication pipelines" -}}{{- end -}}
+{{- $endpoints := mergeOverwrite (deepCopy (dig "publicationEndpoints" dict (default dict $chart.values))) (deepCopy (default dict $.Values.publicationEndpoints)) -}}
+{{- $image := dig "registry" "image" dict $endpoints -}}
+{{- $push := ne (get $registry "mode") "byo" -}}
+{{- if hasKey $image "push" -}}{{- if not (kindIs "bool" (get $image "push")) -}}{{- fail "publicationEndpoints.registry.image.push must be boolean" -}}{{- end -}}{{- $push = get $image "push" -}}{{- end -}}
+{{- if not $push -}}{{- fail "publicationEndpoints.registry.image.push=false cannot support mandatory image publication pipelines until a future workflow slice" -}}{{- end -}}
+{{- end -}}
+{{- end -}}
 {{- if and (not $chart.disabled) (not $repoChart) (or (eq $path "charts/rfe-pipelines") (and (eq $path "charts/operator") (eq (dig "operator" "name" "" (default dict $chart.values)) "openshift-pipelines-operator-rh"))) -}}
 {{- $pipelines := mergeOverwrite (deepCopy (dig "components" "pipelines" dict (default dict $chart.values))) (deepCopy (dig "pipelines" dict (default dict $.Values.components))) -}}
 {{- if hasKey $pipelines "mode" -}}
@@ -182,6 +194,11 @@ Injects Global Values
 {{- $chartValues := deepCopy (default dict .chart.values) -}}
 {{- $path := include "application-manager.chartPath" . -}}
 {{- $repoChart := include "application-manager.chartRepoPath" . -}}
+{{- if and (not $repoChart) (has $path (list "charts/quay" "charts/rfe-pipelines")) -}}
+{{- if hasKey $.Values "publicationEndpoints" -}}
+{{- $_ := set $chartValues "publicationEndpoints" (mergeOverwrite (default dict (get $chartValues "publicationEndpoints")) (deepCopy $.Values.publicationEndpoints)) -}}
+{{- end -}}
+{{- end -}}
 {{- $pipelinesOperator := and (not $repoChart) (eq $path "charts/operator") (eq (dig "operator" "name" "" $chartValues) "openshift-pipelines-operator-rh") -}}
 {{- if $pipelinesOperator -}}
 {{- $pipelines := dig "pipelines" dict (default dict $.Values.components) -}}
@@ -191,7 +208,7 @@ Injects Global Values
 {{- $_ := set $chartValues "components" $components -}}
 {{- end -}}
 {{- end -}}
-{{- if and (not $repoChart) (has $path (list "charts/application-manager" "charts/bootstrap" "charts/argocd" "charts/argocd-integration" "charts/odf" "charts/cnv" "charts/image-builder-vm" "charts/rfe-pipelines")) -}}
+{{- if and (not $repoChart) (has $path (list "charts/application-manager" "charts/bootstrap" "charts/argocd" "charts/argocd-integration" "charts/odf" "charts/cnv" "charts/image-builder-vm" "charts/rfe-pipelines" "charts/quay")) -}}
 {{- range $key := list "deployment" "permissions" "components" -}}
 {{- if hasKey $.Values $key -}}
 {{- $_ := set $chartValues $key (mergeOverwrite (default dict (get $chartValues $key)) (deepCopy (get $.Values $key))) -}}
@@ -211,3 +228,28 @@ Injects Global Values
 {{- end -}}
 {{- tpl (toYaml (merge (default dict $chartValues) (default dict (dict "global" $.Values.global)))) .context -}}
 {{- end }}
+
+{{- define "application-manager.registryValidate" -}}
+{{- $registry := .registry -}}
+{{- if and (hasKey $registry "mode") (not (kindIs "string" (get $registry "mode"))) -}}{{- fail "components.registry.mode must be a lifecycle string" -}}{{- end -}}
+{{- if not (has (get $registry "mode" | default "managed") (list "managed" "byo" "disabled")) -}}
+{{- fail "components.registry.mode must be one of: managed, byo, disabled" -}}
+{{- end -}}
+{{- $connection := default dict (get $registry "connection") -}}
+{{- if hasKey $connection "imagePath" -}}
+{{- if not (kindIs "string" (get $connection "imagePath")) -}}{{- fail "components.registry.connection.imagePath must be a registry repository path" -}}{{- end -}}
+{{- if not (regexMatch "^[A-Za-z0-9][A-Za-z0-9.:-]*/[A-Za-z0-9_./-]+$" (get $connection "imagePath")) -}}{{- fail "components.registry.connection.imagePath must be a registry repository path" -}}{{- end -}}
+{{- end -}}
+{{- if hasKey $connection "publisherSecretName" -}}
+{{- $secret := get $connection "publisherSecretName" -}}
+{{- if not (kindIs "string" $secret) -}}{{- fail "components.registry.connection.publisherSecretName must be a Kubernetes DNS name" -}}{{- end -}}
+{{- if or (gt (len $secret) 253) (not (regexMatch "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$" $secret)) -}}{{- fail "components.registry.connection.publisherSecretName must be a Kubernetes DNS name" -}}{{- end -}}
+{{- end -}}
+{{- if eq (get $registry "mode") "byo" -}}
+{{- range $field := list "imagePath" "publisherSecretName" -}}
+{{- if empty (dig "connection" $field "" $registry) -}}
+{{- fail (printf "components.registry.connection.%s is required for BYO registry" $field) -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}

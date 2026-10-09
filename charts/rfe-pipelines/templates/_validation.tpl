@@ -15,6 +15,16 @@
 {{- end -}}
 {{- end -}}
 {{- define "rfePipelines.validate" -}}
+{{- include "rfe-pipelines.registryValidate" (dict "registry" .Values.components.registry) -}}
+{{- if eq .Values.components.registry.mode "disabled" -}}
+{{- fail "components.registry.mode=disabled cannot support mandatory image publication pipelines" -}}
+{{- end -}}
+{{- $image := default dict .Values.publicationEndpoints.registry.image -}}
+{{- $push := ne .Values.components.registry.mode "byo" -}}
+{{- if hasKey $image "push" -}}{{- $push = get $image "push" -}}{{- end -}}
+{{- if not $push -}}
+{{- fail "publicationEndpoints.registry.image.push=false cannot support mandatory image publication pipelines until a future workflow slice" -}}
+{{- end -}}
 {{- if eq .Values.components.pipelines.mode "disabled" -}}
 {{- fail "components.pipelines.mode=disabled cannot support mandatory pipelines" -}}
 {{- end -}}
@@ -30,7 +40,7 @@
 {{- $artifactRepository := $endpoints.artifactRepository | default dict -}}
 {{- $httpServing := $endpoints.httpServing | default dict -}}
 {{- $nexus := $artifactRepository.nexus | default dict -}}
-{{- $registryMode := $registry.mode | default "managed-reference" -}}
+{{- $registryMode := include "rfePipelines.registryMode" . -}}
 {{- $artifactRepositoryMode := $artifactRepository.mode | default "managed-reference" -}}
 {{- $httpServingMode := $httpServing.mode | default "managed-reference" -}}
 {{- $target := .Values.rhelTarget | default dict -}}
@@ -80,10 +90,10 @@
 {{- if not (has $registryMode (list "managed-reference" "external")) -}}
 {{- fail "publicationEndpoints.registry.mode must be one of: managed-reference, external" -}}
 {{- end -}}
-{{- if and (eq $registryMode "external") (empty $registry.imagePath) -}}
+{{- if and (eq $registryMode "external") (empty (include "rfePipelines.registryImagePath" .)) -}}
 {{- fail "publicationEndpoints.registry.imagePath is required when publicationEndpoints.registry.mode=external" -}}
 {{- end -}}
-{{- if empty $registry.publisherSecretName -}}
+{{- if empty (include "rfePipelines.registryPublisherSecret" .) -}}
 {{- fail "publicationEndpoints.registry.publisherSecretName is required" -}}
 {{- end -}}
 {{- if and (eq $registryMode "managed-reference") (empty $registry.setupSecretName) -}}

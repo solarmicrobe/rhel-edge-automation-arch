@@ -401,3 +401,41 @@ only this plan; the parent continuation verifies and pushes the resulting revisi
 
 Plan 0007 remains incomplete: registry, Nexus, HTTPD, broader workflow dependency validation and modern
 deployment/operator entry-point wiring remain separate bounded units.
+
+### Registry lifecycle checkpoint (local implementation, review pending)
+
+`components.registry.mode` now governs `charts/quay` and registry consumption by `charts/rfe-pipelines`.
+Managed defaults retain the complete starting manifests. BYO and disabled service modes render no QuayRegistry,
+setup Job, Role or RoleBinding. BYO requires `connection.imagePath` for a pre-created registry repository and
+`connection.publisherSecretName` for an existing publisher Secret. No broad setup or repository-management opt-in
+is introduced. The Quay operator entry point remains a separate modern wiring unit.
+
+`publicationEndpoints.registry.image.push` is an optional boolean, resolved to true for managed registry and false
+for BYO. Current mandatory image-publication pipelines reject false, including the omitted BYO default, before
+rendering runnable Tasks. Supporting stage-only reuse without publication requires the later workflow dependency
+slice. Explicit BYO push opt-in uses the configured repository path and publisher Secret; it does not mount the
+Quay setup Secret. The repository Task returns the configured pre-created path without Ansible, API calls or any
+Secret mount. BYO paths enter shell execution through a quoted environment variable, and the configured path takes
+precedence over Task parameter overrides. Existing external-endpoint values retain compatibility.
+
+Application Manager forwards registry ownership and publication settings selectively to actual local Quay and
+Pipelines chart paths, including `common.chartPath`; parent values override child values. Effective local child
+registry settings and pipeline publication authorization are validated before generating Applications. The focused
+example is `examples/values/registry-byo.yaml`.
+
+Local implementation verification: `ruby tests/plan0007-render.rb` passes 241 render checks, including complete
+managed Quay, Pipelines and registry Application equality against starting revision
+`cca8beefa7b0b4a473066874846eea4e4ce2fb41`, empty BYO/disabled service inventories, mandatory publication rejection,
+BYO path/Secret wiring, missing/invalid connection and mode/type rejection, and actual chart-path forwarding.
+`ruby tests/plan0007-byo-inventory.rb` passes four local inventory cases and both scheduler guards.
+`git diff --check` passes. No cluster deployment or live registry push was attempted; CI, credentials and runtime
+publication remain unverified. Checkpoint `2/10`, implementation remediation fixes `0/5`; independent review and
+integration receipt remain pending. Registry work has not been committed or pushed by this implementer.
+
+The preceding Pipelines checkpoint was independently reviewed locally, but its push remains blocked by automatic
+approval review. Two push attempts were rejected because plan-derived authorization was untrusted and remote
+authorization was unverified. Direct user authorization is pending; no bypass was attempted. Local review does not
+establish pushed integration or an external PR gate.
+
+Plan 0007 remains incomplete: Nexus, HTTPD, broader workflow dependency validation, stage-only reuse and modern
+operator/deployment entry-point wiring remain separate bounded units.

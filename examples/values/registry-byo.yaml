@@ -1,0 +1,12 @@
+# Pre-created repository and publisher Secret; no Quay setup or management.
+components:
+  registry:
+    mode: byo
+    connection:
+      imagePath: registry.example.com/rfe/edge
+      publisherSecretName: existing-registry-publisher
+publicationEndpoints:
+  registry:
+    image:
+      # Current image pipelines require publication; opt in explicitly.
+      push: true

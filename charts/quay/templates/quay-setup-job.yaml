@@ -1,3 +1,5 @@
+{{- include "quay.registryValidate" (dict "registry" .Values.components.registry) -}}
+{{- if eq .Values.components.registry.mode "managed" -}}
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -40,3 +42,5 @@ spec:
       serviceAccount: {{ .Values.serviceAccount }}
       serviceAccountName: {{ .Values.serviceAccount }}
       terminationGracePeriodSeconds: 30
+
+{{- end }}

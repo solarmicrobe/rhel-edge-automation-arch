@@ -38,7 +38,7 @@ spec:
       type: string
     - name: registry-image-path
       description: Existing container image path when using an external registry endpoint
-      default: {{ $.Values.publicationEndpoints.registry.imagePath | quote }}
+      default: {{ (include "rfePipelines.registryImagePath" $) | quote }}
       type: string
 {{- if eq .Values.components.imageBuilderVM.mode "byo" }}
     - name: image-builder-secret

@@ -16,7 +16,7 @@ spec:
       type: string
     - name: image-path
       description: Existing container image path when using an external registry endpoint
-      default: {{ .Values.publicationEndpoints.registry.imagePath | quote }}
+      default: {{ (include "rfePipelines.registryImagePath" .) | quote }}
       type: string
   results:
     - name: image-path
@@ -24,11 +24,20 @@ spec:
   steps:
     - name: create-quay-repository-playbook
       image: {{ .Values.ansibleRunner.image | quote }}
+      {{- if eq .Values.components.registry.mode "byo" }}
+      env:
+        - name: REGISTRY_IMAGE_PATH
+          value: {{ include "rfePipelines.registryImagePath" . | quote }}
+      {{- end }}
       workingDir: /workspace/workspace
       args:
         - |-
-          {{- if eq .Values.publicationEndpoints.registry.mode "external" }}
+          {{- if eq (include "rfePipelines.registryMode" .) "external" }}
+          {{- if eq .Values.components.registry.mode "byo" }}
+          printf '%s' "$REGISTRY_IMAGE_PATH" > "$(results.image-path.path)"
+          {{- else }}
           printf '%s' "$(params.image-path)" > "$(results.image-path.path)"
+          {{- end }}
           exit 0
           {{- else }}
           cd tooling/ansible
@@ -42,7 +51,7 @@ spec:
       command:
         - /bin/bash
         - -c
-      {{- if eq .Values.publicationEndpoints.registry.mode "managed-reference" }}
+      {{- if eq (include "rfePipelines.registryMode" .) "managed-reference" }}
       volumeMounts:
         - name: publisher
           mountPath: /var/secrets/publisher
@@ -51,11 +60,11 @@ spec:
           mountPath: /var/secrets/quay-rfe-setup
           readOnly: true
       {{- end }}
-  {{- if eq .Values.publicationEndpoints.registry.mode "managed-reference" }}
+  {{- if eq (include "rfePipelines.registryMode" .) "managed-reference" }}
   volumes:
     - name: publisher
       secret:
-        secretName: {{ .Values.publicationEndpoints.registry.publisherSecretName | quote }}
+        secretName: {{ (include "rfePipelines.registryPublisherSecret" .) | quote }}
         defaultMode: 0440
     - name: quay-rfe-setup
       secret:
