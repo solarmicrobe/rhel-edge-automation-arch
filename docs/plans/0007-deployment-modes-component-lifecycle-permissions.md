@@ -402,7 +402,7 @@ only this plan; the parent continuation verifies and pushes the resulting revisi
 Plan 0007 remains incomplete: registry, Nexus, HTTPD, broader workflow dependency validation and modern
 deployment/operator entry-point wiring remain separate bounded units.
 
-### Registry lifecycle checkpoint (local implementation, review pending)
+### Registry lifecycle checkpoint (implemented and independently reviewed)
 
 `components.registry.mode` now governs `charts/quay` and registry consumption by `charts/rfe-pipelines`.
 Managed defaults retain the complete starting manifests. BYO and disabled service modes render no QuayRegistry,
@@ -429,8 +429,26 @@ managed Quay, Pipelines and registry Application equality against starting revis
 BYO path/Secret wiring, missing/invalid connection and mode/type rejection, and actual chart-path forwarding.
 `ruby tests/plan0007-byo-inventory.rb` passes four local inventory cases and both scheduler guards.
 `git diff --check` passes. No cluster deployment or live registry push was attempted; CI, credentials and runtime
-publication remain unverified. Checkpoint `2/10`, implementation remediation fixes `0/5`; independent review and
-integration receipt remain pending. Registry work has not been committed or pushed by this implementer.
+publication remain unverified. Checkpoint `2/10`, implementation remediation fixes `0/5`. Registry implementation
+is committed locally at `adff4cc3b85153af9ff336b77946fb1391cd512c`; pushed integration remains pending.
+
+Independent local review cycle `1`, checkpoint `registry-lifecycle-2`: `STATUS: APPROVE` against base
+`cca8beefa7b0b4a473066874846eea4e4ce2fb41` and implementation head
+`adff4cc3b85153af9ff336b77946fb1391cd512c`. Fresh acceptance, correctness/quality,
+tests/verification and security lanes passed with no findings or decision-boundary items. Acceptance independently
+ran 54 focused registry render checks, including complete parsed managed-manifest equality. Security verified empty
+BYO Quay inventory, configured path and existing publisher credentials without setup credentials, and standalone
+Task rejection of unauthorized BYO publication. Verification independently checked both standalone Tasks reject
+`image.push=false`. Each lane confirmed the immutable head remained current; whitespace checks pass. The reported
+241-check implementation suite and inventory results were not repeated during review. No remediation was required.
+The separate review-disposition commit changes only this plan; local approval does not establish pushed integration,
+a PR approval gate, CI success or live runtime readiness.
+
+Later workflow integration must wire `components.registry.connection.publisherSecretName` into the staging pull
+credentials: `charts/rbac/templates/oci-rfe-httpd-serviceaccount.yaml` currently hardcodes `publisher`, and the stage
+Task uses the configured staging service account. Verify a private BYO path with a non-default publisher Secret
+before claiming end-to-end private image consumption. This checkpoint covers publication, while that consumer
+wiring remains part of the accepted workflow/entry-point slice.
 
 The preceding Pipelines checkpoint was independently reviewed locally, but its push remains blocked by automatic
 approval review. Two push attempts were rejected because plan-derived authorization was untrusted and remote
