@@ -1,0 +1,4 @@
+{{- include "nexus.nexusValidate" (dict "nexus" .Values.components.nexus "consumer" false) -}}
+{{- if eq .Values.components.nexus.mode "managed" }}
+
+{{- end }}

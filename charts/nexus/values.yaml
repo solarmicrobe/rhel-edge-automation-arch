@@ -47,3 +47,9 @@ setupJob:
   annotations:
     argocd.argoproj.io/hook: PostSync
     argocd.argoproj.io/hook-delete-policy: HookSucceeded
+
+components:
+  nexus:
+    mode: managed
+    connection: {}
+    # artifacts.upload defaults true in managed, false in BYO.

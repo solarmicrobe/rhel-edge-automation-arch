@@ -1,3 +1,5 @@
+{{- include "nexus.nexusValidate" (dict "nexus" .Values.components.nexus "consumer" false) -}}
+{{- if eq .Values.components.nexus.mode "managed" }}
 {{- $setupJobName := include "common.names.appendSuffix" (dict "suffix" "setup" "context" $) -}}
 apiVersion: batch/v1
 kind: Job
@@ -127,3 +129,4 @@ spec:
       serviceAccount: {{ $setupJobName }}
       serviceAccountName: {{ $setupJobName }}
       terminationGracePeriodSeconds: 30
+{{- end }}

@@ -1,3 +1,5 @@
+{{- include "nexus.nexusValidate" (dict "nexus" .Values.components.nexus "consumer" false) -}}
+{{- if eq .Values.components.nexus.mode "managed" }}
 apiVersion: redhatgov.io/v1alpha1
 kind: Nexus
 metadata:
@@ -30,3 +32,5 @@ spec:
       tag: {{ .Values.nexus.image.version }}
       pullPolicy: {{ .Values.nexus.persistent.imagePullPolicy }}
     volumeSize: {{ .Values.nexus.persistent.volumeSize }}
+
+{{- end }}

@@ -457,3 +457,34 @@ establish pushed integration or an external PR gate.
 
 Plan 0007 remains incomplete: Nexus, HTTPD, broader workflow dependency validation, stage-only reuse and modern
 operator/deployment entry-point wiring remain separate bounded units.
+
+### Nexus lifecycle checkpoint
+
+`components.nexus.mode: managed | byo | disabled` governs the Nexus chart and artifact upload consumers.
+Managed mode preserves the existing Nexus resources and setup job. BYO and disabled render no Nexus objects,
+setup jobs, setup RBAC or repository provisioning. The generic Nexus operator installation entry point remains
+part of the later operator/deployment entry-point slice; this checkpoint does not suppress that entry point.
+
+Active BYO Pipelines require an explicit `components.nexus.connection` with `credentialsSecretName`,
+`credentialsSecretNamespace`, `serviceName`, `servicePort`, `httpScheme`, `routeName`, `routeNamespace`,
+`kickstartRepository` and `autoIsoRepository`. The existing component owner provisions those repositories and
+credentials. Only Secret names and namespaces enter Task arguments; credential contents remain in existing Secrets.
+Connection values are validated before shell interpolation.
+
+`components.nexus.artifacts.upload` is an optional boolean. Its absence resolves to true for managed Nexus and
+false for BYO Nexus. BYO upload requires explicit true. Disabled Nexus always skips upload, including when legacy
+publication settings or the upload flag request it. Skipped Tasks omit Nexus connection and Secret arguments and
+use the existing `skip_nexus_upload` guard, result fallback and HTTPD serving paths. Managed legacy
+`publicationEndpoints.artifactRepository.mode: disabled` remains supported.
+
+Application Manager validates effective local child settings and forwards parent ownership to actual Nexus and
+Pipelines chart paths, including `common.chartPath`. Parent values override matching child values while preserving
+other child values; unrelated and external charts receive no Nexus boundary. The focused example is
+`examples/values/nexus-byo.yaml`.
+
+Local verification: `ruby tests/plan0007-render.rb` passes 281 render checks and compares complete parsed Nexus and Pipelines manifests with starting revision
+`7d23771b9d1aff0c59d881e4601bc55ddb84a621`, checks empty BYO/disabled Nexus inventories, explicit BYO endpoint
+mapping, default skip and disabled override behavior, unsafe/missing connection rejection and selective forwarding.
+The existing local Ansible inventory suite passes four cases and both scheduler guards. No cluster install, live
+upload, paid execution or remote push was attempted. CI and live Nexus/HTTPD runtime behavior remain unverified.
+Checkpoint `3/10`; implementation remediation fixes `0/5`. Integration and independent review remain pending.

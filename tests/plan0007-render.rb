@@ -313,3 +313,57 @@ end
   end
 end
 puts "#{CHECKS.length} Helm render checks passed"
+
+nexus_byo = File.join(ROOT, 'examples/values/nexus-byo.yaml')
+%w[byo disabled].each do |mode|
+  assert(render('nexus', '--set', "components.nexus.mode=#{mode}").empty?, "#{mode} Nexus installs objects")
+end
+%w[nexus rfe-pipelines].each do |chart|
+  %w[invalid true].each { |mode| render(chart, '--set', "components.nexus.mode=#{mode}", succeeds: false) }
+  render(chart, '--set-string', 'components.nexus.artifacts.upload=false', succeeds: false)
+end
+render('rfe-pipelines', '--set', 'components.nexus.mode=byo', succeeds: false)
+%w[credentialsSecretName credentialsSecretNamespace serviceName servicePort httpScheme routeName routeNamespace kickstartRepository autoIsoRepository].each do |field|
+  render('rfe-pipelines', '-f', nexus_byo, '--set', "components.nexus.connection.#{field}=", succeeds: false)
+end
+# Inspect Task shell arguments and scripts.
+all_scripts = ->(docs) { docs.select { |d| d['kind'] == 'Task' }.flat_map { |d| d.dig('spec', 'steps').flat_map { |step| [step['script'], *step['args']] }.compact }.join }
+skipped = Dir.mktmpdir('nexus-default-') do |dir|
+  values = YAML.load_file(nexus_byo)
+  values.dig('components', 'nexus').delete('artifacts')
+  path = File.join(dir, 'values.yaml')
+  File.write(path, YAML.dump(values))
+  all_scripts.call(render('rfe-pipelines', '-f', path))
+end
+assert(skipped.include?('skip_nexus_upload="true"') && !skipped.include?('-e nexus_credentials_'), 'BYO skip retains Nexus secret references')
+disabled = all_scripts.call(render('rfe-pipelines', '--set', 'components.nexus.mode=disabled,components.nexus.artifacts.upload=true'))
+assert(disabled.include?('skip_nexus_upload="true"') && !disabled.include?('-e nexus_'), 'disabled Nexus retains Nexus connection arguments')
+active = all_scripts.call(render('rfe-pipelines', '-f', nexus_byo))
+assert(active.include?('existing-nexus-publisher') && active.include?('nexus_repository="auto-iso"') && active.include?('nexus_rfe_kickstarts_repository="kickstarts"'), 'BYO Nexus connection not mapped to role arguments')
+%w[charts/nexus charts/rfe-pipelines].each do |path|
+  app = render('application-manager', '-f', nexus_byo, '--set', "common.chartPath=#{path},charts.consumer.destinationNamespace=rfe,charts.consumer.values.retained=true").first
+  child = YAML.load(app.dig('spec', 'source', 'helm', 'values'))
+  assert(child.dig('components', 'nexus', 'connection', 'serviceName') == 'existing-nexus' && child['retained'], 'Nexus parent forwarding lost connection or child values')
+end
+render('application-manager', '--set', 'charts.consumer.path=charts/rfe-pipelines,charts.consumer.values.components.nexus.mode=byo', succeeds: false)
+%w[credentialsSecretName credentialsSecretNamespace serviceName routeName routeNamespace kickstartRepository autoIsoRepository].each do |field|
+  render('rfe-pipelines', '-f', nexus_byo, '--set-string', "components.nexus.connection.#{field}=bad;command", succeeds: false)
+end
+%w[0 65536 bad].each { |port| render('rfe-pipelines', '-f', nexus_byo, '--set', "components.nexus.connection.servicePort=#{port}", succeeds: false) }
+render('rfe-pipelines', '-f', nexus_byo, '--set', 'components.nexus.connection.httpScheme=ftp', succeeds: false)
+app = render('application-manager', '-f', nexus_byo, '--set', 'charts.unrelated.path=charts/httpd').first
+assert(!YAML.load(app.dig('spec', 'source', 'helm', 'values')).key?('components'), 'Nexus ownership leaked to unrelated chart')
+Dir.mktmpdir('nexus-managed-') do |dir|
+  FileUtils.cp_r(File.join(ROOT, 'charts'), dir)
+  tracked, err, status = Open3.capture3('git', '-C', ROOT, 'ls-tree', '-r', '--name-only', '7d23771b9d1aff0c59d881e4601bc55ddb84a621', 'charts/nexus', 'charts/rfe-pipelines', 'charts/application-manager')
+  raise err unless status.success?
+  tracked.lines.map(&:strip).each do |path|
+    content, err, status = Open3.capture3('git', '-C', ROOT, 'show', "7d23771b9d1aff0c59d881e4601bc55ddb84a621:#{path}")
+    raise err unless status.success?
+    File.write(File.join(dir, path), content)
+  end
+  %w[nexus rfe-pipelines].each do |chart|
+    assert(render(chart, chart_root: File.join(dir, 'charts')) == render(chart), "complete managed #{chart} manifests changed")
+  end
+end
+puts "#{CHECKS.length} Helm render checks including Nexus passed"

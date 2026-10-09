@@ -15,6 +15,7 @@
 {{- end -}}
 {{- end -}}
 {{- define "rfePipelines.validate" -}}
+{{- include "rfePipelines.nexusValidate" (dict "nexus" .Values.components.nexus "consumer" true) -}}
 {{- include "rfe-pipelines.registryValidate" (dict "registry" .Values.components.registry) -}}
 {{- if eq .Values.components.registry.mode "disabled" -}}
 {{- fail "components.registry.mode=disabled cannot support mandatory image publication pipelines" -}}
@@ -102,13 +103,13 @@
 {{- if not (has $artifactRepositoryMode (list "managed-reference" "disabled")) -}}
 {{- fail "publicationEndpoints.artifactRepository.mode must be one of: managed-reference, disabled" -}}
 {{- end -}}
-{{- if and (eq $artifactRepositoryMode "managed-reference") (empty $nexus.credentialsSecretName) -}}
+{{- if and (and (eq (include "rfePipelines.nexusUpload" .) "true") (eq .Values.components.nexus.mode "managed")) (empty $nexus.credentialsSecretName) -}}
 {{- fail "publicationEndpoints.artifactRepository.nexus.credentialsSecretName is required when publicationEndpoints.artifactRepository.mode=managed-reference" -}}
 {{- end -}}
-{{- if and (eq $artifactRepositoryMode "managed-reference") (empty $nexus.credentialsSecretNamespace) -}}
+{{- if and (and (eq (include "rfePipelines.nexusUpload" .) "true") (eq .Values.components.nexus.mode "managed")) (empty $nexus.credentialsSecretNamespace) -}}
 {{- fail "publicationEndpoints.artifactRepository.nexus.credentialsSecretNamespace is required when publicationEndpoints.artifactRepository.mode=managed-reference" -}}
 {{- end -}}
-{{- if and (eq $artifactRepositoryMode "managed-reference") (empty $nexus.serviceName) -}}
+{{- if and (and (eq (include "rfePipelines.nexusUpload" .) "true") (eq .Values.components.nexus.mode "managed")) (empty $nexus.serviceName) -}}
 {{- fail "publicationEndpoints.artifactRepository.nexus.serviceName is required when publicationEndpoints.artifactRepository.mode=managed-reference" -}}
 {{- end -}}
 {{- if not (has $httpServingMode (list "managed-reference")) -}}

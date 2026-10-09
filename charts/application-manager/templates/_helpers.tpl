@@ -6,6 +6,10 @@
 {{- $ctx := dict "chartName" $chartName "chart" $chart "Values" $.Values -}}
 {{- $path := include "application-manager.chartPath" $ctx -}}
 {{- $repoChart := include "application-manager.chartRepoPath" $ctx -}}
+{{- if and (not $chart.disabled) (not $repoChart) (has $path (list "charts/nexus" "charts/rfe-pipelines")) -}}
+{{- $nexus := mergeOverwrite (deepCopy (dig "components" "nexus" dict (default dict $chart.values))) (deepCopy (dig "nexus" dict (default dict $.Values.components))) -}}
+{{- include "application-manager.nexusValidate" (dict "nexus" $nexus "consumer" (eq $path "charts/rfe-pipelines")) -}}
+{{- end -}}
 {{- if and (not $chart.disabled) (not $repoChart) (has $path (list "charts/quay" "charts/rfe-pipelines")) -}}
 {{- $registry := mergeOverwrite (deepCopy (dig "components" "registry" dict (default dict $chart.values))) (deepCopy (dig "registry" dict (default dict $.Values.components))) -}}
 {{- include "application-manager.registryValidate" (dict "registry" $registry) -}}
@@ -199,6 +203,14 @@ Injects Global Values
 {{- $_ := set $chartValues "publicationEndpoints" (mergeOverwrite (default dict (get $chartValues "publicationEndpoints")) (deepCopy $.Values.publicationEndpoints)) -}}
 {{- end -}}
 {{- end -}}
+{{- if and (not $repoChart) (eq $path "charts/nexus") -}}
+{{- $nexus := dig "nexus" dict (default dict $.Values.components) -}}
+{{- if $nexus -}}
+{{- $components := default dict (get $chartValues "components") -}}
+{{- $_ := set $components "nexus" (mergeOverwrite (default dict (get $components "nexus")) (deepCopy $nexus)) -}}
+{{- $_ := set $chartValues "components" $components -}}
+{{- end -}}
+{{- end -}}
 {{- $pipelinesOperator := and (not $repoChart) (eq $path "charts/operator") (eq (dig "operator" "name" "" $chartValues) "openshift-pipelines-operator-rh") -}}
 {{- if $pipelinesOperator -}}
 {{- $pipelines := dig "pipelines" dict (default dict $.Values.components) -}}
@@ -250,6 +262,29 @@ Injects Global Values
 {{- if empty (dig "connection" $field "" $registry) -}}
 {{- fail (printf "components.registry.connection.%s is required for BYO registry" $field) -}}
 {{- end -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- define "application-manager.nexusValidate" -}}
+{{- $nexus := .nexus -}}
+{{- $mode := get $nexus "mode" | default "managed" -}}
+{{- if not (has $mode (list "managed" "byo" "disabled")) -}}{{- fail "components.nexus.mode must be one of: managed, byo, disabled" -}}{{- end -}}
+{{- $connection := default dict (get $nexus "connection") -}}
+{{- range $field, $value := $connection -}}
+{{- if eq $field "servicePort" -}}
+{{- if or (not (regexMatch "^[0-9]+$" (toString $value))) (lt (int $value) 1) (gt (int $value) 65535) -}}{{- fail "components.nexus.connection.servicePort must be a valid port" -}}{{- end -}}
+{{- else if eq $field "httpScheme" -}}
+{{- if not (has $value (list "http" "https")) -}}{{- fail "components.nexus.connection.httpScheme must be http or https" -}}{{- end -}}
+{{- else -}}
+{{- if not (kindIs "string" $value) -}}{{- fail (printf "components.nexus.connection.%s must be a DNS name" $field) -}}{{- end -}}
+{{- if or (gt (len $value) 253) (not (regexMatch "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$" $value)) -}}{{- fail (printf "components.nexus.connection.%s must be a DNS name" $field) -}}{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- $artifacts := default dict (get $nexus "artifacts") -}}
+{{- if and (hasKey $artifacts "upload") (not (kindIs "bool" (get $artifacts "upload"))) -}}{{- fail "components.nexus.artifacts.upload must be boolean" -}}{{- end -}}
+{{- if and .consumer (eq $mode "byo") -}}
+{{- range $field := list "credentialsSecretName" "credentialsSecretNamespace" "serviceName" "servicePort" "httpScheme" "routeName" "routeNamespace" "kickstartRepository" "autoIsoRepository" -}}
+{{- if empty (get $connection $field) -}}{{- fail (printf "components.nexus.connection.%s is required for BYO Nexus consumers" $field) -}}{{- end -}}
 {{- end -}}
 {{- end -}}
 {{- end -}}

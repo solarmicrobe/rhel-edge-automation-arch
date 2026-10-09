@@ -1,3 +1,5 @@
+{{- include "nexus.nexusValidate" (dict "nexus" .Values.components.nexus "consumer" false) -}}
+{{- if eq .Values.components.nexus.mode "managed" }}
 {{- $setupJobName := include "common.names.appendSuffix" (dict "suffix" "setup" "context" $) -}}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -16,3 +18,5 @@ subjects:
   - kind: ServiceAccount
     name: {{ $setupJobName }}
     namespace: {{ template "common.names.namespace" $ }}
+
+{{- end }}

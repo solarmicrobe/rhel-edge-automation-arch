@@ -1,0 +1,16 @@
+# Existing repositories and credentials are provisioned by their owner.
+components:
+  nexus:
+    mode: byo
+    artifacts:
+      upload: true
+    connection:
+      credentialsSecretName: existing-nexus-publisher
+      credentialsSecretNamespace: rfe
+      serviceName: existing-nexus
+      servicePort: 8081
+      httpScheme: https
+      routeName: existing-nexus
+      routeNamespace: repositories
+      kickstartRepository: kickstarts
+      autoIsoRepository: auto-iso

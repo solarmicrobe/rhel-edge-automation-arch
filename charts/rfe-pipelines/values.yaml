@@ -86,3 +86,8 @@ components:
   registry:
     mode: managed
     connection: {}
+
+  nexus:
+    mode: managed
+    connection: {}
+    # artifacts.upload defaults true in managed, false in BYO.
