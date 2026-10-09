@@ -1,0 +1,5 @@
+components:
+  pipelines:
+    mode: byo
+    connection:
+      namespace: existing-pipelines

@@ -1,5 +1,5 @@
 {{- include "rfePipelines.validate" . -}}
-{{- if not (default .Values.defaultsConfigmap.disabled false) }}
+{{- if and (eq .Values.components.pipelines.mode "managed") (not (default .Values.defaultsConfigmap.disabled false)) }}
 apiVersion: v1
 data:
   default-service-account: pipeline

@@ -9,3 +9,8 @@ operator:
 operatorgroup:
   create: true
   allNamespaces: false
+
+components:
+  pipelines:
+    mode: managed
+    connection: {}

@@ -15,6 +15,12 @@
 {{- end -}}
 {{- end -}}
 {{- define "rfePipelines.validate" -}}
+{{- if eq .Values.components.pipelines.mode "disabled" -}}
+{{- fail "components.pipelines.mode=disabled cannot support mandatory pipelines" -}}
+{{- end -}}
+{{- if and (eq .Values.components.pipelines.mode "byo") (empty .Values.components.pipelines.connection.namespace) -}}
+{{- fail "components.pipelines.connection.namespace is required for BYO Pipelines" -}}
+{{- end -}}
 {{- include "rfePipelines.vmLifecycleValidate" . -}}
 {{- if eq .Values.components.imageBuilderVM.mode "disabled" -}}
 {{- fail "components.imageBuilderVM.mode=disabled cannot support mandatory compose pipelines" -}}

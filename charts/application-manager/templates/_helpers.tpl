@@ -2,6 +2,35 @@
 {{- $deploymentMode := dig "mode" "managed-rfe-argocd" (default dict .Values.deployment) -}}
 {{- $gitops := dig "gitops" dict (default dict .Values.components) -}}
 {{- $mode := get $gitops "mode" -}}
+{{- range $chartName, $chart := .Values.charts -}}
+{{- $ctx := dict "chartName" $chartName "chart" $chart "Values" $.Values -}}
+{{- $path := include "application-manager.chartPath" $ctx -}}
+{{- $repoChart := include "application-manager.chartRepoPath" $ctx -}}
+{{- if and (not $chart.disabled) (not $repoChart) (or (eq $path "charts/rfe-pipelines") (and (eq $path "charts/operator") (eq (dig "operator" "name" "" (default dict $chart.values)) "openshift-pipelines-operator-rh"))) -}}
+{{- $pipelines := mergeOverwrite (deepCopy (dig "components" "pipelines" dict (default dict $chart.values))) (deepCopy (dig "pipelines" dict (default dict $.Values.components))) -}}
+{{- if hasKey $pipelines "mode" -}}
+{{- if not (has (get $pipelines "mode") (list "managed" "byo" "disabled")) -}}
+{{- fail "components.pipelines.mode must be one of: managed, byo, disabled" -}}
+{{- end -}}
+{{- end -}}
+{{- $connection := default dict (get $pipelines "connection") -}}
+{{- if hasKey $connection "namespace" -}}
+{{- $namespace := get $connection "namespace" -}}
+{{- if not (kindIs "string" $namespace) -}}
+{{- fail "components.pipelines.connection.namespace must be a Kubernetes namespace string" -}}
+{{- end -}}
+{{- if or (gt (len $namespace) 63) (not (regexMatch "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$" $namespace)) -}}
+{{- fail "components.pipelines.connection.namespace must be a nonempty Kubernetes namespace" -}}
+{{- end -}}
+{{- end -}}
+{{- if and (eq (get $pipelines "mode") "byo") (empty (dig "connection" "namespace" "" $pipelines)) -}}
+{{- fail "components.pipelines.connection.namespace is required for BYO Pipelines" -}}
+{{- end -}}
+{{- if and (eq $path "charts/rfe-pipelines") (eq (get $pipelines "mode") "disabled") -}}
+{{- fail "components.pipelines.mode=disabled cannot support mandatory pipelines" -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
 {{- $byo := has $deploymentMode (list "byo-cluster-argocd" "byo-rfe-argocd") -}}
 {{- if and $mode (ne $mode "disabled") (ne $mode (ternary "byo" "managed" $byo)) -}}
 {{- fail "components.gitops.mode must agree with deployment.mode" -}}
@@ -153,6 +182,15 @@ Injects Global Values
 {{- $chartValues := deepCopy (default dict .chart.values) -}}
 {{- $path := include "application-manager.chartPath" . -}}
 {{- $repoChart := include "application-manager.chartRepoPath" . -}}
+{{- $pipelinesOperator := and (not $repoChart) (eq $path "charts/operator") (eq (dig "operator" "name" "" $chartValues) "openshift-pipelines-operator-rh") -}}
+{{- if $pipelinesOperator -}}
+{{- $pipelines := dig "pipelines" dict (default dict $.Values.components) -}}
+{{- if $pipelines -}}
+{{- $components := default dict (get $chartValues "components") -}}
+{{- $_ := set $components "pipelines" (mergeOverwrite (default dict (get $components "pipelines")) (deepCopy $pipelines)) -}}
+{{- $_ := set $chartValues "components" $components -}}
+{{- end -}}
+{{- end -}}
 {{- if and (not $repoChart) (has $path (list "charts/application-manager" "charts/bootstrap" "charts/argocd" "charts/argocd-integration" "charts/odf" "charts/cnv" "charts/image-builder-vm" "charts/rfe-pipelines")) -}}
 {{- range $key := list "deployment" "permissions" "components" -}}
 {{- if hasKey $.Values $key -}}

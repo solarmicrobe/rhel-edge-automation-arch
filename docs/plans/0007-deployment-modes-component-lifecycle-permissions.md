@@ -3,8 +3,9 @@
 ## Status
 
 GitOps/permission/ODF checkpoint implemented and reviewed on the `custom` branch. The bounded Virtualization
-connection checkpoint below extends lifecycle ownership to CNV platform objects and retained VM DataSource wiring.
-Broader component lifecycle migration remains deferred.
+connection and guest checkpoints below extend lifecycle ownership to CNV platform objects and retained VM wiring.
+The Pipelines platform checkpoint is implemented and awaits independent review. Broader component lifecycle
+migration remains deferred.
 
 Checkpoint `values-doc-examples` locks the values API names and semantics below. The first implementation checkpoint
 wires those names only where needed to prove GitOps permission ownership and ODF lifecycle behavior before broader
@@ -349,3 +350,44 @@ are installed for this unit. `git diff --check` is required before integration.
 
 Plan 0007 remains incomplete: Pipelines platform lifecycle, registry, Nexus, HTTPD, broader workflow dependency
 validation and modern deployment/operator entry-point wiring remain separate bounded units.
+
+## Pipelines Platform Lifecycle Checkpoint (2026-10-09)
+
+`components.pipelines.mode: managed | byo | disabled` controls Pipelines platform ownership, with `managed` as
+the compatibility default. In `charts/operator`, this boundary applies only when `operator.name` is
+`openshift-pipelines-operator-rh`: managed retains the Subscription and optional OperatorGroup, while BYO and
+disabled render no platform objects. Other operator names retain their existing behavior.
+
+BYO requires explicit `components.pipelines.connection.namespace`, a Kubernetes namespace string of 1–63
+lowercase alphanumeric/hyphen characters with alphanumeric endpoints. It identifies the existing platform;
+it does not relocate workload Tasks or Pipelines, discover the operator, or verify platform readiness.
+The existing workload destination namespace remains authoritative. The platform owner must provide compatible
+Tekton APIs, controllers and defaults before workloads run.
+
+`charts/rfe-pipelines` retains workload definitions in BYO mode and suppresses the platform-owned
+`config-defaults` ConfigMap even when `defaultsConfigmap.disabled=false`. Managed retains the existing ConfigMap
+behavior and namespace. No setup Job, platform configuration mutation or generic BYO create switch is added.
+Disabled is an intermediate restriction: the platform operator chart can render empty, but the workload chart
+rejects disabled Pipelines because its current workflows are mandatory. A deployment that keeps those workflows
+cannot select disabled; workflow opt-outs or alternatives remain future work.
+
+Application Manager forwards the boundary by actual repository chart path, including `common.chartPath`, to
+`charts/rfe-pipelines` and specifically the Pipelines operator in `charts/operator`. Parent values take precedence
+over child ownership values while preserving unrelated child values. Unrelated operators and external Helm
+repository charts do not receive the new operator forwarding. Effective child settings are validated before
+generating Applications. The focused example is `examples/values/pipelines-byo.yaml`.
+
+Integration verification: all 187 checks in `ruby tests/plan0007-render.rb` pass, including complete parsed managed
+operator, Pipelines and Application manifests compared with starting revision
+`73807b99a20e798fecae7279e05e0836459151ce`, empty platform renders, retained BYO workloads, legacy ConfigMap flag
+suppression, mode/type/namespace rejection, mandatory workflow rejection and selective chart-path propagation.
+`ruby tests/plan0007-byo-inventory.rb` also passes four local inventory cases and both scheduler guards.
+`git diff --check` passes. These are local, non-mutating checks; no cluster validation, compose execution,
+dependency installation or paid resource use occurred. CI and live platform/runtime behavior remain unverified.
+
+Continuation budget: start `2026-10-09 11:52:04 UTC`, deadline `2026-10-09 17:52:04 UTC`; checkpoint `1/10`,
+implementation fixes `0/5`. This integration receipt records implementation and local verification only;
+independent review has not occurred, and the parent continuation records the review disposition.
+
+Plan 0007 remains incomplete: registry, Nexus, HTTPD, broader workflow dependency validation and modern
+deployment/operator entry-point wiring remain separate bounded units.

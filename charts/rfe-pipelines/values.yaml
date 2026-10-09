@@ -75,6 +75,9 @@ pipelines:
 
 # Existing guest is configured externally in BYO mode.
 components:
+  pipelines:
+    mode: managed
+    connection: {}
   imageBuilderVM:
     mode: managed
     connection: {}

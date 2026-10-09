@@ -189,4 +189,72 @@ end
 end
 app = render('application-manager', '-f', vm_byo, '--set', 'common.chartPath=charts/rfe-pipelines,charts.consumer.destinationNamespace=rfe').first
 assert(YAML.load(app.dig('spec', 'source', 'helm', 'values')).dig('components', 'imageBuilderVM', 'connection', 'host') == 'builder.example.com', 'VM connection lost at actual pipeline chart path')
+# Pipelines ownership applies only to its platform operator, retaining workload definitions.
+pipelines_byo = File.join(ROOT, 'examples/values/pipelines-byo.yaml')
+operator_args = ['--set', 'operator.name=openshift-pipelines-operator-rh,operator.channel=latest,operator.source=redhat-operators,operator.sourceNamespace=openshift-marketplace']
+managed_operator = render('operator', *operator_args)
+assert(kinds(managed_operator).sort == %w[OperatorGroup Subscription], 'managed Pipelines operator changed')
+%w[byo disabled].each do |mode|
+  docs = render('operator', *operator_args, '-f', pipelines_byo, '--set', "components.pipelines.mode=#{mode}")
+  assert(docs.empty?, "#{mode} Pipelines installs platform resources")
+  assert(kinds(render('operator', *operator_args, '--set', "operator.name=unrelated,components.pipelines.mode=#{mode}")).sort == %w[OperatorGroup Subscription], 'unrelated operator ownership changed')
+end
+managed_pipelines = render('rfe-pipelines')
+byo_pipelines_platform = render('rfe-pipelines', '-f', pipelines_byo, '--set', 'defaultsConfigmap.disabled=false')
+assert(byo_pipelines_platform == managed_pipelines.reject { |d| d['kind'] == 'ConfigMap' }, 'BYO changes workloads or mutates platform defaults')
+%w[operator rfe-pipelines application-manager].each do |chart|
+  args = chart == 'operator' ? operator_args : []
+  %w[invalid true].each { |mode| render(chart, *args, '--set', "components.pipelines.mode=#{mode}", succeeds: false) }
+  %w[42 false bad/namespace -leading].each do |namespace|
+    render(chart, *args, '--set', "components.pipelines.connection.namespace=#{namespace}", succeeds: false)
+  end
+end
+%w[operator rfe-pipelines application-manager].each do |chart|
+  args = chart == 'operator' ? operator_args : []
+  %w[components.pipelines=true components.pipelines.connection=42].each do |setting|
+    render(chart, *args, '--set', setting, succeeds: false)
+  end
+end
+%w[operator rfe-pipelines].each do |chart|
+  args = chart == 'operator' ? operator_args : []
+  render(chart, *args, '-f', pipelines_byo, '--set', 'components.pipelines.connection.namespace=', succeeds: false)
+end
+app = render('application-manager', '-f', pipelines_byo, '--set', 'common.chartPath=charts/rfe-pipelines,charts.workloads.destinationNamespace=rfe').first
+assert(YAML.load(app.dig('spec', 'source', 'helm', 'values')).dig('components', 'pipelines', 'connection', 'namespace') == 'existing-pipelines', 'Pipelines workload connection not forwarded')
+render('operator', *operator_args, '--set', 'components.pipelines.mode=byo', succeeds: false)
+render('rfe-pipelines', '--set', 'components.pipelines.mode=byo', succeeds: false)
+render('rfe-pipelines', '--set', 'components.pipelines.mode=disabled', succeeds: false)
+%w[charts.operator.path=charts/operator common.chartPath=charts/operator].each do |path_setting|
+  args = ['--set', "#{path_setting},charts.operator.values.operator.name=openshift-pipelines-operator-rh"]
+  app = render('application-manager', '-f', pipelines_byo, *args).first
+  assert(YAML.load(app.dig('spec', 'source', 'helm', 'values')).dig('components', 'pipelines', 'mode') == 'byo', 'Pipelines operator ownership not forwarded')
+  render('application-manager', *args, '--set', 'components.pipelines.mode=byo', succeeds: false)
+end
+%w[charts/operator charts/rfe-pipelines].each do |path|
+  %w[mode=invalid mode=true connection.namespace=42 connection.namespace=false connection.namespace=bad/name].each do |setting|
+    render('application-manager', '--set', "charts.consumer.path=#{path},charts.consumer.values.operator.name=openshift-pipelines-operator-rh,charts.consumer.values.components.pipelines.#{setting}", succeeds: false)
+  end
+end
+render('application-manager', '--set', 'charts.workloads.path=charts/rfe-pipelines,components.pipelines.mode=disabled', succeeds: false)
+render('application-manager', '--set', 'charts.workloads.path=charts/rfe-pipelines,components.pipelines.mode=byo', succeeds: false)
+['charts.operator.values.operator.name=unrelated', 'charts.operator.chart=external,charts.operator.values.operator.name=openshift-pipelines-operator-rh'].each do |setting|
+  app = render('application-manager', '-f', pipelines_byo, '--set', "charts.operator.path=charts/operator,#{setting}").first
+  assert(!YAML.load(app.dig('spec', 'source', 'helm', 'values')).key?('components'), 'Pipelines ownership leaked to unrelated/external operator')
+end
+Dir.mktmpdir('plan0007-pipelines-baseline-') do |dir|
+  FileUtils.cp_r(File.join(ROOT, 'charts'), dir)
+  staged = File.join(dir, 'charts')
+  tracked, err, status = Open3.capture3('git', '-C', ROOT, 'ls-tree', '-r', '--name-only', '73807b99a20e798fecae7279e05e0836459151ce', 'charts/operator', 'charts/rfe-pipelines', 'charts/application-manager')
+  raise err unless status.success?
+  tracked.lines.map(&:strip).each do |path|
+    content, err, status = Open3.capture3('git', '-C', ROOT, 'show', "73807b99a20e798fecae7279e05e0836459151ce:#{path}")
+    raise err unless status.success?
+    File.write(File.join(dir, path), content)
+  end
+  FileUtils.rm_f(File.join(staged, 'operator', 'values.schema.json'))
+  assert(render('operator', *operator_args, chart_root: staged) == managed_operator, 'complete managed operator manifests changed')
+  assert(render('rfe-pipelines', chart_root: staged) == managed_pipelines, 'complete managed Pipelines manifests changed')
+  manager_args = ['--set', 'charts.operator.path=charts/operator,charts.operator.values.operator.name=openshift-pipelines-operator-rh']
+  assert(render('application-manager', *manager_args, chart_root: staged) == render('application-manager', *manager_args), 'managed Application manifests changed')
+end
 puts "#{CHECKS.length} Helm render checks passed"
