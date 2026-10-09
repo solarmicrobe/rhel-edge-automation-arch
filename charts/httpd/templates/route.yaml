@@ -1,3 +1,5 @@
+{{- include "httpd.httpdValidate" (dict "httpd" .Values.components.httpd "endpoint" (dig "httpServing" dict (default dict .Values.publicationEndpoints)) "consumer" false) -}}
+{{- if eq .Values.components.httpd.mode "managed" -}}
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
@@ -16,3 +18,5 @@ spec:
     kind: Service
     name: {{ template "common.names.fullname" . }}
     weight: 100
+
+{{- end -}}

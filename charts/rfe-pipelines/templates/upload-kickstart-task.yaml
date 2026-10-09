@@ -1,3 +1,6 @@
+{{- include "rfePipelines.httpdValidate" (dict "httpd" .Values.components.httpd "endpoint" .Values.publicationEndpoints.httpServing "consumer" true) -}}
+{{- $httpServing := .Values.publicationEndpoints.httpServing -}}
+{{- if eq .Values.components.httpd.mode "byo" -}}{{- $httpServing = .Values.components.httpd.connection -}}{{- end -}}
 {{- $nexus := .Values.publicationEndpoints.artifactRepository.nexus -}}
 {{- if eq .Values.components.nexus.mode "byo" -}}{{- $nexus = .Values.components.nexus.connection -}}{{- end -}}
 {{- $upload := eq (include "rfePipelines.nexusUpload" .) "true" -}}
@@ -55,11 +58,11 @@ spec:
 {{- end }}
             -e skip_nexus_upload={{ not $upload | quote }} \
             -e artifact_repository_disabled_result_value={{ .Values.publicationEndpoints.artifactRepository.disabledResultValue | quote }} \
-            -e httpd_route_name={{ .Values.publicationEndpoints.httpServing.routeName | quote }} \
-            -e httpd_route_namespace={{ .Values.publicationEndpoints.httpServing.routeNamespace | quote }} \
-            -e httpd_pod_namespace={{ .Values.publicationEndpoints.httpServing.podNamespace | quote }} \
-            -e httpd_pod_label_selector={{ .Values.publicationEndpoints.httpServing.podLabelSelector | quote }} \
-            -e httpd_html_dir={{ .Values.publicationEndpoints.httpServing.webRoot | quote }} \
+            -e httpd_route_name={{ $httpServing.routeName | quote }} \
+            -e httpd_route_namespace={{ $httpServing.routeNamespace | quote }} \
+            -e httpd_pod_namespace={{ $httpServing.podNamespace | quote }} \
+            -e httpd_pod_label_selector={{ $httpServing.podLabelSelector | quote }} \
+            -e httpd_html_dir={{ $httpServing.webRoot | quote }} \
             -e artifact_repository_url_output_file=$(results.artifact-repository-storage-url.path) \
             -e storage_url_output_file=$(results.serving-storage-url.path) \
             $(params.extra-ansible-variables) \

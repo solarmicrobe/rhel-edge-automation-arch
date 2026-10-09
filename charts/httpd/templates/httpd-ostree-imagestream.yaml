@@ -1,3 +1,5 @@
+{{- include "httpd.httpdValidate" (dict "httpd" .Values.components.httpd "endpoint" (dig "httpServing" dict (default dict .Values.publicationEndpoints)) "consumer" false) -}}
+{{- if eq .Values.components.httpd.mode "managed" -}}
 {{- if .Values.buildConfig.enabled -}}
 apiVersion: image.openshift.io/v1
 kind: ImageStream
@@ -7,4 +9,6 @@ metadata:
   labels:
     {{- include "common.labels.labels" . | nindent 4 }}
 spec: {}
+{{- end -}}
+
 {{- end -}}

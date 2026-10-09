@@ -21,6 +21,7 @@
 
 - name: Generate In-Memory Inventory for httpd Pod
   ansible.builtin.add_host:
+    ansible_kubectl_namespace: "{{ httpd_pod_namespace }}"
     ansible_connection: kubectl
     ansible_remote_tmp: /tmp
     groups:

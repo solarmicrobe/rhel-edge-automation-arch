@@ -1,3 +1,6 @@
+{{- include "rfePipelines.httpdValidate" (dict "httpd" .Values.components.httpd "endpoint" .Values.publicationEndpoints.httpServing "consumer" true) -}}
+{{- $httpServing := .Values.publicationEndpoints.httpServing -}}
+{{- if eq .Values.components.httpd.mode "byo" -}}{{- $httpServing = .Values.components.httpd.connection -}}{{- end -}}
 {{- $nexus := .Values.publicationEndpoints.artifactRepository.nexus -}}
 {{- if eq .Values.components.nexus.mode "byo" -}}{{- $nexus = .Values.components.nexus.connection -}}{{- end -}}
 {{- $upload := eq (include "rfePipelines.nexusUpload" .) "true" -}}
@@ -53,8 +56,13 @@ spec:
             -e nexus_service_port={{ $nexus.servicePort | quote }} \
 {{- end }}
             -e skip_nexus_upload={{ not $upload | quote }} \
-            -e httpd_route_name={{ .Values.publicationEndpoints.httpServing.routeName | quote }} \
-            -e httpd_route_namespace={{ .Values.publicationEndpoints.httpServing.routeNamespace | quote }} \
+{{- if or (eq .Values.components.httpd.mode "byo") (ne $httpServing.podNamespace "rfe") (ne $httpServing.podLabelSelector "deployment=httpd") (ne $httpServing.webRoot "/var/www/html") }}
+            -e httpd_pod_namespace={{ $httpServing.podNamespace | quote }} \
+            -e httpd_pod_label_selector={{ $httpServing.podLabelSelector | quote }} \
+            -e httpd_web_root={{ $httpServing.webRoot | quote }} \
+{{- end }}
+            -e httpd_route_name={{ $httpServing.routeName | quote }} \
+            -e httpd_route_namespace={{ $httpServing.routeNamespace | quote }} \
             -e iso_url_output_file=$(results.iso-url.path) \
             playbooks/oci-build-auto-iso.yaml
       command:

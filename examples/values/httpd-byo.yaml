@@ -1,0 +1,23 @@
+# Existing writable OSTree HTTPD pod and Route; no HTTPD installation is rendered.
+components:
+  httpd:
+    mode: byo
+    connection:
+      routeName: existing-httpd
+      routeNamespace: serving-routes
+      podNamespace: serving-pods
+      podLabelSelector: app=existing-httpd
+      webRoot: /srv/edge
+      stageServiceAccountName: existing-stage
+publicationEndpoints:
+  httpServing:
+    content:
+      write: true
+    # Separate authorization for per-image staging Kubernetes objects.
+    staging:
+      create: true
+pipelines:
+  repos:
+    tooling:
+      repoURL: https://github.com/solarmicrobe/rhel-edge-automation-arch.git
+      targetRevision: custom

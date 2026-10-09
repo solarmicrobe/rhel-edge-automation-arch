@@ -6,6 +6,11 @@
 {{- $ctx := dict "chartName" $chartName "chart" $chart "Values" $.Values -}}
 {{- $path := include "application-manager.chartPath" $ctx -}}
 {{- $repoChart := include "application-manager.chartRepoPath" $ctx -}}
+{{- if and (not $chart.disabled) (not $repoChart) (has $path (list "charts/httpd" "charts/rfe-pipelines")) -}}
+{{- $httpd := mergeOverwrite (deepCopy (dig "components" "httpd" dict (default dict $chart.values))) (deepCopy (dig "httpd" dict (default dict $.Values.components))) -}}
+{{- $endpoint := mergeOverwrite (deepCopy (dig "publicationEndpoints" "httpServing" dict (default dict $chart.values))) (deepCopy (dig "httpServing" dict (default dict $.Values.publicationEndpoints))) -}}
+{{- include "application-manager.httpdValidate" (dict "httpd" $httpd "endpoint" $endpoint "consumer" (eq $path "charts/rfe-pipelines")) -}}
+{{- end -}}
 {{- if and (not $chart.disabled) (not $repoChart) (has $path (list "charts/nexus" "charts/rfe-pipelines")) -}}
 {{- $nexus := mergeOverwrite (deepCopy (dig "components" "nexus" dict (default dict $chart.values))) (deepCopy (dig "nexus" dict (default dict $.Values.components))) -}}
 {{- include "application-manager.nexusValidate" (dict "nexus" $nexus "consumer" (eq $path "charts/rfe-pipelines")) -}}
@@ -208,6 +213,14 @@ Injects Global Values
 {{- if $nexus -}}
 {{- $components := default dict (get $chartValues "components") -}}
 {{- $_ := set $components "nexus" (mergeOverwrite (default dict (get $components "nexus")) (deepCopy $nexus)) -}}
+{{- $_ := set $chartValues "components" $components -}}
+{{- end -}}
+{{- end -}}
+{{- if and (not $repoChart) (eq $path "charts/httpd") -}}
+{{- $httpd := dig "httpd" dict (default dict $.Values.components) -}}
+{{- if $httpd -}}
+{{- $components := default dict (get $chartValues "components") -}}
+{{- $_ := set $components "httpd" (mergeOverwrite (default dict (get $components "httpd")) (deepCopy $httpd)) -}}
 {{- $_ := set $chartValues "components" $components -}}
 {{- end -}}
 {{- end -}}

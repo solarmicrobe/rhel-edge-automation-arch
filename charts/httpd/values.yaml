@@ -19,3 +19,8 @@ buildConfig:
   enableRepositories:
     - rhel-8-for-x86_64-baseos-rpms
     - rhel-8-for-x86_64-appstream-rpms
+
+components:
+  httpd:
+    mode: managed
+    connection: {}

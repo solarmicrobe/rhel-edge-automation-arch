@@ -509,3 +509,57 @@ Each lane confirmed the immutable head remained current. Full suites were not re
 this plan. Local approval does not establish pushed integration, a PR approval gate, CI success or live runtime
 readiness. Remote push remains blocked pending direct user authorization after the earlier automatic approval
 review rejection; no bypass was attempted.
+
+### HTTPD lifecycle checkpoint (implementation candidate)
+
+`components.httpd.mode: managed | byo | disabled` governs all HTTPD chart objects. Managed remains the
+compatibility default. BYO and disabled render no Deployment, Service, Route, PVC, BuildConfig or ImageStream,
+and bypass managed image/build validation. Managed external-image reuse through `buildConfig.enabled=false`
+remains supported.
+
+BYO requires explicit `connection.routeName`, `routeNamespace`, `podNamespace`, `podLabelSelector`, `webRoot`
+and `stageServiceAccountName`. This is an existing Kubernetes pod and Route boundary, requiring writable storage,
+compatible HTTPD/OSTree tools and externally supplied permissions; a URL alone does not satisfy it. Names and
+namespaces are checked as Kubernetes DNS names/labels; selectors support a shell-safe single equality expression;
+web roots support absolute paths with alphanumeric, underscore and hyphen segments. Missing values, invalid lifecycle
+values (including false, zero and empty strings), invalid types and shell punctuation fail rendering.
+
+`publicationEndpoints.httpServing.content.write` authorizes copy/unarchive, OSTree mirroring and ISO delivery.
+`publicationEndpoints.httpServing.staging.create` separately authorizes creation of the current per-image staging
+ImageStream, Deployment, Service and Route. Both are optional booleans, resolving to true for managed HTTPD and false
+for BYO. Current mandatory workflows require both to resolve true, so BYO needs two explicit opt-ins and disabled
+HTTPD is rejected by the workload chart. Neither flag creates the shared HTTPD service or grants permissions.
+No generic BYO mutation switch is introduced.
+
+Application Manager validates effective parent/child HTTPD settings and forwards parent ownership by actual local
+`charts/httpd` and `charts/rfe-pipelines` paths, including `common.chartPath`. Unrelated and external chart paths
+retain their prior forwarding behavior. The four actual consumers (kickstart upload, image staging, OSTree publication
+and autoboot ISO) use the BYO connection. Publication and ISO pod discovery receive the configured namespace/selector;
+both HTTPD inventory add-host paths carry `ansible_kubectl_namespace`, as documented by the
+[Ansible kubectl connection](https://docs.ansible.com/projects/ansible/latest/collections/kubernetes/core/kubectl_connection.html).
+The ISO HTTPD destination uses `webRoot` and the guest ISO basename while preserving the guest temporary path,
+cleanup and result URL APIs. Non-default legacy managed pod/web-root endpoints also reach these consumers.
+
+The example `examples/values/httpd-byo.yaml` selects this fork's compatible `custom` tooling revision and uses only
+public dummy connection references. The external owner must provide the staging service account, image pull access,
+pod execution privileges, writable web root and compatible tooling. This unit creates no RBAC or credentials.
+
+Local verification compares complete parsed managed HTTPD, Pipeline and Application manifests with starting revision
+`d2d915ce448992070faa2e3c655987c9919f4279`, and checks empty installation output, image reuse, invalid/missing
+connections, independent mutation opt-ins and actual consumer/child forwarding. The inventory suite executes the
+real pod-inventory tasks using a temporary local query module fixture; only API authentication arguments are replaced.
+It verifies configured query namespace/selector, both actual add-host connection namespaces and templated ISO
+web-root destination, without Kubernetes APIs, SSH or pod mutation. Full pod exec, HTTPD tool compatibility, private
+image pulls, writes and live serving remain unverified; no cluster actions or dependency installation occurred.
+
+Next workflow unit must replace this mandatory boundary with consumer-specific enablement/dependency validation:
+`stageImage` needs staging namespace/service account plus BYO `staging.create`; `publishOstree` needs the source stage
+namespace plus destination pod/Route/web root and `content.write`; `publishIso` and `serveKickstarts` need destination
+connection plus `content.write`. Registry pull-credential wiring remains allocated to that workflow unit.
+Verification: all 382 checks in `ruby tests/plan0007-render.rb`, the existing four inventory cases and both
+scheduler guards, the HTTPD inventory/destination fixture and `git diff --check` pass. Checkpoint `4/10`,
+implementation repair count `0/5` (temporary edit-script correction before candidate writes was a tool repair;
+no candidate validation failure). Fresh integration verified branch `custom` and the supplied starting revision,
+reran both suites and `git diff --check`, and prepared the coherent HTTPD implementation commit. Independent
+review remains pending; no push was attempted. Existing goal-prompt edits and the untracked remaining-goal plan
+were preserved outside this implementation commit.

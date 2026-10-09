@@ -1,3 +1,6 @@
+{{- include "rfePipelines.httpdValidate" (dict "httpd" .Values.components.httpd "endpoint" .Values.publicationEndpoints.httpServing "consumer" true) -}}
+{{- $httpServing := .Values.publicationEndpoints.httpServing -}}
+{{- if eq .Values.components.httpd.mode "byo" -}}{{- $httpServing = .Values.components.httpd.connection -}}{{- end -}}
 apiVersion: tekton.dev/v1
 kind: Task
 metadata:
@@ -36,9 +39,14 @@ spec:
             -e quay_image_path=$(params.image-path) \
             -e quay_image_tag=$(params.image-tag) \
             -e skip_free_space_protection=$(params.skip-free-space-protection) \
-            -e httpd_web_root={{ .Values.publicationEndpoints.httpServing.webRoot | quote }} \
-            -e httpd_route_name={{ .Values.publicationEndpoints.httpServing.routeName | quote }} \
-            -e httpd_route_namespace={{ .Values.publicationEndpoints.httpServing.routeNamespace | quote }} \
+            -e httpd_web_root={{ $httpServing.webRoot | quote }} \
+{{- if or (eq .Values.components.httpd.mode "byo") (ne $httpServing.podNamespace "rfe") (ne $httpServing.podLabelSelector "deployment=httpd") (ne $httpServing.webRoot "/var/www/html") }}
+            -e httpd_pod_namespace={{ $httpServing.podNamespace | quote }} \
+            -e httpd_pod_label_selector={{ $httpServing.podLabelSelector | quote }} \
+            -e stage_namespace={{ $httpServing.podNamespace | quote }} \
+{{- end }}
+            -e httpd_route_name={{ $httpServing.routeName | quote }} \
+            -e httpd_route_namespace={{ $httpServing.routeNamespace | quote }} \
             -e ostree_ref=$(params.ostree-ref) \
             -e content_path_output_file=$(results.content-path.path) \
             playbooks/oci-publish-content.yaml

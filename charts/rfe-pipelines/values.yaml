@@ -50,6 +50,8 @@ publicationEndpoints:
       kickstartRepository: rfe-kickstarts
       autoIsoRepository: rfe-auto-iso
   httpServing:
+    # content.write and staging.create are optional booleans: managed defaults
+    # true, BYO defaults false. Mandatory workflows currently require both true.
     mode: managed-reference
     routeName: httpd
     routeNamespace: rfe
@@ -77,6 +79,9 @@ pipelines:
 
 # Existing guest is configured externally in BYO mode.
 components:
+  httpd:
+    mode: managed
+    connection: {}
   pipelines:
     mode: managed
     connection: {}

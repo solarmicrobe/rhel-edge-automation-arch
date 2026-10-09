@@ -1,3 +1,5 @@
+{{- include "httpd.httpdValidate" (dict "httpd" .Values.components.httpd "endpoint" (dig "httpServing" dict (default dict .Values.publicationEndpoints)) "consumer" false) -}}
+{{- if eq .Values.components.httpd.mode "managed" -}}
 {{- include "httpd.validate" . -}}
 apiVersion: apps/v1
 kind: Deployment
@@ -44,3 +46,5 @@ spec:
         - name: data
           persistentVolumeClaim:
             claimName: httpd
+
+{{- end -}}

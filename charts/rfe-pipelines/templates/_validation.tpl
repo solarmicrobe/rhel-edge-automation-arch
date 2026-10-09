@@ -15,6 +15,7 @@
 {{- end -}}
 {{- end -}}
 {{- define "rfePipelines.validate" -}}
+{{- include "rfePipelines.httpdValidate" (dict "httpd" .Values.components.httpd "endpoint" .Values.publicationEndpoints.httpServing "consumer" true) -}}
 {{- include "rfePipelines.nexusValidate" (dict "nexus" .Values.components.nexus "consumer" true) -}}
 {{- include "rfe-pipelines.registryValidate" (dict "registry" .Values.components.registry) -}}
 {{- if eq .Values.components.registry.mode "disabled" -}}

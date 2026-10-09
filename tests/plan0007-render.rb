@@ -374,3 +374,82 @@ Dir.mktmpdir('nexus-managed-') do |dir|
   end
 end
 puts "#{CHECKS.length} Helm render checks including Nexus passed"
+
+# HTTPD lifecycle and mutation boundaries, including actual runtime consumer paths.
+httpd_byo = File.join(ROOT, 'examples/values/httpd-byo.yaml')
+%w[byo disabled].each do |mode|
+  args = mode == 'byo' ? ['-f', httpd_byo] : ['--set', "components.httpd.mode=#{mode}"]
+  assert(render('httpd', *args, '--set', 'buildConfig.enabled=false,image.repository=').empty?, "#{mode} HTTPD installs resources or validates managed build")
+end
+%w[httpd rfe-pipelines].each do |chart|
+  %w[invalid true false 0].push('').each { |mode| render(chart, '--set', "components.httpd.mode=#{mode}", succeeds: false) }
+  render(chart, '--set', 'components.httpd.mode=byo', succeeds: false)
+  %w[routeName routeNamespace podNamespace podLabelSelector webRoot stageServiceAccountName].each do |field|
+    render(chart, '-f', httpd_byo, '--set', "components.httpd.connection.#{field}=", succeeds: false)
+    render(chart, '-f', httpd_byo, '--set', "components.httpd.connection.#{field}=42", succeeds: false)
+    render(chart, '-f', httpd_byo, '--set-string', "components.httpd.connection.#{field}=bad;command", succeeds: false)
+  end
+end
+render('rfe-pipelines', '--set', 'components.httpd.mode=disabled', succeeds: false)
+%w[content.write staging.create].each do |flag|
+  render('rfe-pipelines', '-f', httpd_byo, '--set', "publicationEndpoints.httpServing.#{flag}=false", succeeds: false)
+  render('rfe-pipelines', '-f', httpd_byo, '--set-string', "publicationEndpoints.httpServing.#{flag}=true", succeeds: false)
+  render('rfe-pipelines', '--set', "publicationEndpoints.httpServing.#{flag}=false", succeeds: false)
+end
+Dir.mktmpdir('httpd-authorization-') do |dir|
+  %w[content staging].each do |flag|
+    values = YAML.load_file(httpd_byo)
+    values['publicationEndpoints']['httpServing'].delete(flag)
+    path = File.join(dir, "#{flag}.yaml")
+    File.write(path, YAML.dump(values))
+    render('rfe-pipelines', '-f', path, succeeds: false)
+  end
+end
+httpd_tasks = render('rfe-pipelines', '-f', httpd_byo)
+scripts = all_scripts.call(httpd_tasks)
+assert(scripts.include?('stage_namespace="serving-pods"') && scripts.include?('oci_rfe_http_service_account="existing-stage"'), 'BYO staging connection lost')
+%w[rfe-oci-publish-content rfe-oci-build-auto-iso upload-kickstart].each do |name|
+  script = all_scripts.call(httpd_tasks.select { |d| d.dig('metadata', 'name') == name })
+  assert(script.include?('httpd_pod_namespace="serving-pods"') && script.include?('httpd_pod_label_selector="app=existing-httpd"'), "#{name} pod connection lost")
+  assert(script.include?('httpd_route_name="existing-httpd"') && script.include?('httpd_route_namespace="serving-routes"'), "#{name} route connection lost")
+  assert(script.include?('="/srv/edge"'), "#{name} web root lost")
+end
+%w[charts/httpd charts/rfe-pipelines].each do |path|
+  app = render('application-manager', '-f', httpd_byo, '--set', "common.chartPath=#{path},charts.consumer.values.retained=true").first
+  child = YAML.load(app.dig('spec', 'source', 'helm', 'values'))
+  assert(child.dig('components', 'httpd', 'mode') == 'byo' && child['retained'], 'HTTPD parent forwarding lost')
+  %w[false 0].push('').each do |mode|
+    render('application-manager', '--set', "charts.consumer.path=#{path},charts.consumer.values.components.httpd.mode=#{mode}", succeeds: false)
+  end
+  render('application-manager', '--set', "charts.consumer.path=#{path},charts.consumer.values.components.httpd.mode=byo", succeeds: false)
+end
+render('application-manager', '-f', httpd_byo, '--set', 'charts.consumer.path=charts/rfe-pipelines,publicationEndpoints.httpServing.staging.create=false', succeeds: false)
+render('application-manager', '-f', httpd_byo, '--set-string', 'charts.consumer.path=charts/rfe-pipelines,publicationEndpoints.httpServing.content.write=true', succeeds: false)
+app = render('application-manager', '-f', httpd_byo, '--set', 'charts.consumer.chart=external-chart').first
+assert(!YAML.load(app.dig('spec', 'source', 'helm', 'values')).key?('components'), 'HTTPD forwarded to external chart')
+httpd = render('httpd', '--set', 'buildConfig.enabled=false,image.repository=registry.example.com/existing-httpd:v1')
+assert(httpd.none? { |d| %w[BuildConfig ImageStream].include?(d['kind']) }, 'HTTPD existing image still builds')
+assert(httpd.find { |d| d['kind'] == 'Deployment' }.dig('spec', 'template', 'spec', 'containers', 0, 'image') == 'registry.example.com/existing-httpd:v1', 'HTTPD existing image ignored')
+Dir.mktmpdir('httpd-managed-') do |dir|
+  FileUtils.cp_r(File.join(ROOT, 'charts'), dir)
+  # Remove newly added templates: cp_r would otherwise leave them in baseline.
+  %w[httpd rfe-pipelines application-manager].each { |chart| FileUtils.rm_f(File.join(dir, 'charts', chart, 'templates', '_httpd-lifecycle.tpl')) }
+  tracked, err, status = Open3.capture3('git', '-C', ROOT, 'ls-tree', '-r', '--name-only', 'd2d915ce448992070faa2e3c655987c9919f4279', 'charts/httpd', 'charts/rfe-pipelines', 'charts/application-manager')
+  raise err unless status.success?
+  tracked.lines.map(&:strip).each do |path|
+    content, err, status = Open3.capture3('git', '-C', ROOT, 'show', "d2d915ce448992070faa2e3c655987c9919f4279:#{path}")
+    raise err unless status.success?
+    File.write(File.join(dir, path), content)
+  end
+  %w[httpd rfe-pipelines].each { |chart| assert(render(chart, chart_root: File.join(dir, 'charts')) == render(chart), "complete managed #{chart} manifests changed") }
+  args = ['--set', 'charts.httpd.path=charts/httpd,charts.workflows.path=charts/rfe-pipelines']
+  assert(render('application-manager', *args, chart_root: File.join(dir, 'charts')) == render('application-manager', *args), 'managed HTTPD Applications changed')
+end
+puts "#{CHECKS.length} Helm render checks including HTTPD passed"
+
+%w[httpd rfe-pipelines].each do |chart|
+  %w[content.write staging.create].each { |flag| render(chart, '-f', httpd_byo, '--set-string', "publicationEndpoints.httpServing.#{flag}=false", succeeds: false) }
+  render(chart, '-f', httpd_byo, '--set', 'components.httpd.connection=false', succeeds: false)
+end
+render('rfe-pipelines', '--set', 'publicationEndpoints.httpServing.podNamespace=other-httpd,publicationEndpoints.httpServing.webRoot=/srv/legacy')
+puts "#{CHECKS.length} complete Helm render checks passed"
