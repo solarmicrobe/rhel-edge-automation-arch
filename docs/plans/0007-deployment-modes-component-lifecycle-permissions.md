@@ -487,4 +487,25 @@ Local verification: `ruby tests/plan0007-render.rb` passes 281 render checks and
 mapping, default skip and disabled override behavior, unsafe/missing connection rejection and selective forwarding.
 The existing local Ansible inventory suite passes four cases and both scheduler guards. No cluster install, live
 upload, paid execution or remote push was attempted. CI and live Nexus/HTTPD runtime behavior remain unverified.
-Checkpoint `3/10`; implementation remediation fixes `0/5`. Integration and independent review remain pending.
+Checkpoint `3/10`; implementation remediation fixes `1/5`. Pushed integration remains pending.
+
+Independent local review cycle `1`, checkpoint `nexus-lifecycle-3`, reviewed base
+`7d23771b9d1aff0c59d881e4601bc55ddb84a621` and implementation head
+`b9b333fff0a7bec3c5961c646aa733c900648175`. Acceptance, tests/verification and security passed;
+correctness found `NEXUS-1`: Application Manager accepted supplied false, zero or empty child Nexus modes
+because the helper treated them as omitted. Remediation commit `7f87b2b338ac39dc1866ce5bb9feb3989eb20706`
+preserves supplied values for enum rejection in all three Nexus validators while retaining managed defaults
+for omitted modes. Regression coverage includes standalone charts and local Nexus/Pipelines child paths.
+The remediation render suite passes 295 checks and whitespace checks pass.
+
+Independent local review cycle `2`: `STATUS: APPROVE` against the same base and corrected head
+`7f87b2b338ac39dc1866ce5bb9feb3989eb20706`. Fresh acceptance, correctness/quality, tests/verification
+and security lanes passed with no findings or decision-boundary items. Correctness independently passed
+16 mode renders and four lifecycle/argument renders. Security independently verified empty BYO/disabled
+inventories, skipped credential arguments, retained HTTPD/result paths and unsafe/type input rejection.
+Verification inspected regression assertions and Ansible guards and passed Ruby syntax and whitespace checks.
+Each lane confirmed the immutable head remained current. Full suites were not repeated during review.
+`NEXUS-1` is resolved; no other remediation was needed. The separate review-disposition commit changes only
+this plan. Local approval does not establish pushed integration, a PR approval gate, CI success or live runtime
+readiness. Remote push remains blocked pending direct user authorization after the earlier automatic approval
+review rejection; no bypass was attempted.
