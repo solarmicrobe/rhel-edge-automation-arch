@@ -4,8 +4,8 @@
 
 GitOps/permission/ODF checkpoint implemented and reviewed on the `custom` branch. The bounded Virtualization
 connection and guest checkpoints below extend lifecycle ownership to CNV platform objects and retained VM wiring.
-The Pipelines platform checkpoint is implemented and independently reviewed. Broader component lifecycle
-migration remains deferred.
+The Pipelines platform, registry, Nexus and HTTPD checkpoints are implemented and independently reviewed.
+Workflow dependency validation, artifact reuse and operator entry-point wiring remain pending.
 
 Checkpoint `values-doc-examples` locks the values API names and semantics below. The first implementation checkpoint
 wires those names only where needed to prove GitOps permission ownership and ODF lifecycle behavior before broader
@@ -510,7 +510,7 @@ this plan. Local approval does not establish pushed integration, a PR approval g
 readiness. Remote push remains blocked pending direct user authorization after the earlier automatic approval
 review rejection; no bypass was attempted.
 
-### HTTPD lifecycle checkpoint (implementation candidate)
+### HTTPD lifecycle checkpoint (implemented and independently reviewed)
 
 `components.httpd.mode: managed | byo | disabled` governs all HTTPD chart objects. Managed remains the
 compatibility default. BYO and disabled render no Deployment, Service, Route, PVC, BuildConfig or ImageStream,
@@ -560,6 +560,32 @@ Verification: all 382 checks in `ruby tests/plan0007-render.rb`, the existing fo
 scheduler guards, the HTTPD inventory/destination fixture and `git diff --check` pass. Checkpoint `4/10`,
 implementation repair count `0/5` (temporary edit-script correction before candidate writes was a tool repair;
 no candidate validation failure). Fresh integration verified branch `custom` and the supplied starting revision,
-reran both suites and `git diff --check`, and prepared the coherent HTTPD implementation commit. Independent
-review remains pending; no push was attempted. Existing goal-prompt edits and the untracked remaining-goal plan
+reran both suites and `git diff --check`, and prepared the coherent HTTPD implementation commit. At that commit,
+independent review remained pending; no push was attempted. Existing goal-prompt edits and the untracked remaining-goal plan
 were preserved outside this implementation commit.
+
+Independent local review cycle `1`, checkpoint `httpd-lifecycle-4`, reviewed base
+`d2d915ce448992070faa2e3c655987c9919f4279` and implementation head
+`35f5b4cf203ff91e0cfe8044c1b87e7143de455f`. Acceptance, correctness and tests/verification passed;
+security found `SEC-HTTPD-1`: newly forwarded managed HTTPD endpoint arguments accepted shell substitutions.
+Remediation commit `4584377f0b83355c4ee2b271ba0a51418c5ccd5e` validates effective managed legacy
+endpoint fields using the existing safe BYO rules, preserving valid managed custom endpoints and defaults.
+Regression coverage rejects unsafe namespace, selector and web-root values, invalid types and empty values.
+The remediation suite passes all 397 render checks, including complete managed baseline comparisons;
+whitespace checks pass. Checkpoint `4/10`; implementation remediation count `1/5`.
+
+Independent local review cycle `2`: `STATUS: APPROVE` against the same base and corrected head
+`4584377f0b83355c4ee2b271ba0a51418c5ccd5e`. Fresh acceptance, correctness/quality, tests/verification
+and security lanes passed with no findings or decision-boundary items. Each lane confirmed the immutable head.
+Correctness independently passed 18 targeted renders covering consumer wiring, provider suppression, unsafe-input
+rejection and valid managed custom values. Security passed 36 negative renders across managed and BYO fields,
+four authorization rejection renders and six comparisons of managed manifests and existing BYO setup/RBAC output.
+Verification independently passed Ruby syntax, whitespace, nine managed unsafe-input rejection cases and the
+local inventory fixture. The fixture executes HTTPD query, facts and add-host tasks; the upload path replaces its
+pod lookup with a fact while executing its real add-host task. ISO verification evaluates the actual destination
+expression without running the transfer. The complete 397-check suite was not repeated during review.
+
+`SEC-HTTPD-1` is resolved; no other remediation was needed. This separate review-disposition commit changes
+only this plan. Local approval does not establish pushed integration, a PR approval gate, CI success or live pod
+execution, serving, permissions, storage access or staging readiness. Remote push remains blocked pending direct
+user authorization after the earlier automatic approval review rejection; no bypass was attempted.
