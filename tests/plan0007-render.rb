@@ -319,7 +319,7 @@ nexus_byo = File.join(ROOT, 'examples/values/nexus-byo.yaml')
   assert(render('nexus', '--set', "components.nexus.mode=#{mode}").empty?, "#{mode} Nexus installs objects")
 end
 %w[nexus rfe-pipelines].each do |chart|
-  %w[invalid true].each { |mode| render(chart, '--set', "components.nexus.mode=#{mode}", succeeds: false) }
+  ['invalid', 'true', 'false', '0', ''].each { |mode| render(chart, '--set', "components.nexus.mode=#{mode}", succeeds: false) }
   render(chart, '--set-string', 'components.nexus.artifacts.upload=false', succeeds: false)
 end
 render('rfe-pipelines', '--set', 'components.nexus.mode=byo', succeeds: false)
@@ -346,6 +346,13 @@ assert(active.include?('existing-nexus-publisher') && active.include?('nexus_rep
   assert(child.dig('components', 'nexus', 'connection', 'serviceName') == 'existing-nexus' && child['retained'], 'Nexus parent forwarding lost connection or child values')
 end
 render('application-manager', '--set', 'charts.consumer.path=charts/rfe-pipelines,charts.consumer.values.components.nexus.mode=byo', succeeds: false)
+%w[charts/nexus charts/rfe-pipelines].each do |path|
+  render('application-manager', '--set', "charts.consumer.path=#{path}")
+  ['false', '0', ''].each do |mode|
+    error = render('application-manager', '--set', "charts.consumer.path=#{path},charts.consumer.values.components.nexus.mode=#{mode}", succeeds: false)
+    assert(error.include?('components.nexus.mode must be one of: managed, byo, disabled'), 'invalid child Nexus mode bypasses lifecycle validation')
+  end
+end
 %w[credentialsSecretName credentialsSecretNamespace serviceName routeName routeNamespace kickstartRepository autoIsoRepository].each do |field|
   render('rfe-pipelines', '-f', nexus_byo, '--set-string', "components.nexus.connection.#{field}=bad;command", succeeds: false)
 end

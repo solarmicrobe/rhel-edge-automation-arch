@@ -1,6 +1,6 @@
 {{- define "nexus.nexusValidate" -}}
 {{- $nexus := .nexus -}}
-{{- $mode := get $nexus "mode" | default "managed" -}}
+{{- $mode := dig "mode" "managed" $nexus -}}
 {{- if not (has $mode (list "managed" "byo" "disabled")) -}}{{- fail "components.nexus.mode must be one of: managed, byo, disabled" -}}{{- end -}}
 {{- $connection := default dict (get $nexus "connection") -}}
 {{- range $field, $value := $connection -}}
