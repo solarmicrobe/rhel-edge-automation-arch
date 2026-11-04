@@ -1139,3 +1139,99 @@ At `2026-11-04 05:59:33 UTC`, cumulative execution was 8,426 of 21,600 seconds:
 8,307 seconds at `05:57:34 UTC` plus 119 elapsed seconds. Receipt, commit and later
 coordination remain chargeable. The commit carrying this receipt is the immutable
 integration output; the next lifecycle stage is independent review.
+
+
+### Checkpoint 8 repairs 4 and 5 — local verification receipt, integration pending
+
+Repair 4 addressed independent review findings A1 and D1 on branch `custom`,
+starting from immutable HEAD `affa387e13c03e4f07b4a49cdaa5baf386c46a7c`.
+A1 disposition: reference-full-stack preserves the historical `argocd` Helm
+release and ArgoCD CR identity and matching
+`argocd-argocd-application-controller` ServiceAccount; modern managed mode retains
+`rfe-argocd` and its matching ServiceAccount. Focused cases require both default
+reference identity and custom-target identity, and exact ServiceAccount rollout
+selection. D1 disposition: the reference operator's
+`ARGOCD_CLUSTER_CONFIG_NAMESPACES` is set to the selected target namespace;
+focused rendering requires exactly the custom target watch value.
+
+Repair 4 also added Deployment readiness, no-match discovery timeout, discovery
+budget exhaustion, shared multi-controller deadline, interruption cleanup,
+repeated-values precedence and private staging cleanup assertions. Readiness uses
+one shared deadline for discovery and every matching controller rollout, with
+bounded request and rollout timeouts. Its verification stopped on the SIGINT
+case: Ruby Process::Status#success? is nil for a signaled process, so comparing
+it directly with false rejected the intended unsuccessful interruption. Repair 4
+was not a passing full verification and did not authorize integration.
+
+Repair 5 consumed the unchanged repair 4 candidate hashes before writing:
+helper `4a2d83e39a96970047a49b9a682af293f5a7aa4723fd15cb4108b308353b07a2`,
+test `631046e2cd72de8776841b328613fb74937b64d90df432ce3346fcf1483071ab`,
+README `b63641cbe2b8cb95a0f3474097f6f4eca4f346fbdd8c967de812785dad9e3e0b`,
+wrapper `dedf972a6429fd07a0f237c6aa1f7b3ed4df89f63bcb4d8030b1da32a4127f73`,
+and plan `a0729aa7a7e3fbfa1f9572ccdf6a85d3edb9bca629e6a732b949a341294502a1`.
+Its sole code change normalizes success? to an explicit boolean and additionally
+requires the injected interruption to be signaled with SIGINT. Existing cleanup,
+no-later-phase, ownership, timeout and failure assertions remain intact. No
+implementation, chart, profile, wrapper or README change occurred in repair 5.
+
+One complete post-repair verification ran from approximately
+`2026-11-04 06:11:15 UTC` through `06:13:07 UTC`, all exit 0:
+
+- `ruby -c setup/init.rb`; `ruby -c tests/plan0007-init.rb`;
+  `/bin/bash -n setup/init.sh`.
+- `ruby tests/plan0007-init.rb`: 40 isolated initialization checks passed,
+  using real Helm, verified PATH stubs and dummy kubeconfig.
+- `ruby tests/plan0007-render.rb`: 397 inherited Helm checks, 215 workflow/default
+  comparisons, 100 operator/RBAC checks and 123 recursive modern/admin checks.
+- `ruby tests/plan0007-byo-inventory.rb`: four local inventory cases, both
+  scheduler guards, HTTPD query, actual add_host namespace paths, ISO destination,
+  and default/custom managed inventory and scheduler queries.
+- `git diff --check`.
+
+Checkpoint 8/10 has consumed its final remediation attempt, 5/5: attempt 0
+staged-root containment failure; repair 1 canonicalized root then stopped at
+Psych serialization; repair 2 wrapped documents and passed locally then fresh
+integration failed ownership forwarding; repair 3 isolated dependency caches and
+passed integration; repair 4 addressed review findings but stopped at the SIGINT
+status assertion; repair 5 corrected that assertion and passed this single full
+verification. No sixth repair or post-failure rerun is authorized.
+
+At `2026-11-04 06:13:15 UTC`, cumulative execution was 9,248 of 21,600 seconds:
+9,070 seconds at `06:10:17 UTC` plus 178 elapsed seconds. Later coordination and
+integration remain chargeable. Fresh integration must consume this unchanged
+candidate; this receipt does not claim independent review or whole-plan completion.
+Both user-owned goal files retain their original hashes and remain excluded.
+No commit, push, live API or cluster mutation, dependency fetch or installation,
+paid operation or privileged Pipeline execution occurred. Runtime reconciliation,
+remote state, authorization, images, Secrets and guests remain unverified.
+
+### Checkpoint 8 repair 5 independent integration — review pending
+
+Fresh integration consumed the repair 5 receipt on branch `custom` at immutable
+HEAD `affa387e13c03e4f07b4a49cdaa5baf386c46a7c`. All five candidate hashes and
+both excluded goal hashes matched the supplied receipt before and after testing.
+Integration made no source or test repairs. Inspection confirmed A1's historical
+reference release/CR and matching ServiceAccount, unchanged modern identity,
+D1's selected target watch namespace, and coverage for exact ServiceAccount
+selection, Deployment readiness, shared bounded discovery/rollout deadlines,
+repeated-values precedence and staging cleanup including SIGINT.
+
+At `2026-11-04 06:15:22 UTC`, one fresh verification completed with exit 0:
+Ruby helper/test syntax, Bash wrapper syntax, `git diff --check`, and all 40
+isolated initialization checks using real Helm, stub kubectl and dummy kubeconfig.
+The unchanged candidate's repair 5 broad passing receipt was consumed rather
+than rerun: 397 inherited checks, 215 workflow/default comparisons, 100
+operator/RBAC checks, 123 recursive modern/admin checks and inventory/scheduler
+cases. No verification failure or rerun occurred in this integration.
+
+Checkpoint `8/10` remains at repair `5/5`; no sixth repair is authorized.
+Cumulative execution at `06:15:22 UTC` was 9,375 of 21,600 seconds:
+9,248 at `06:13:15 UTC` plus 127 elapsed seconds. Receipt, commit and later
+coordination remain chargeable. The local integration commit includes only the
+changed helper, focused tests, README and this plan; the unchanged wrapper is
+already in the starting revision. Both user-owned goal files remain excluded
+and retain their supplied hashes. No push, live API/cluster mutation, dependency
+installation, paid operation or privileged Pipeline execution occurred.
+Runtime reconciliation, remote state, authorization, images, Secrets and guests
+remain unverified. This implementation checkpoint advances to independent
+review; it does not claim approval or whole-plan completion.

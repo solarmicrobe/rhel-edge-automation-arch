@@ -165,7 +165,7 @@ begin
   connection['namespace'] = control
   connection['project'] ||= 'rfe'
   connection['server'] ||= 'https://kubernetes.default.svc'
-  connection['controllerServiceAccount'] ||= 'rfe-argocd-argocd-application-controller' unless byo
+  connection['controllerServiceAccount'] ||= reference ? 'argocd-argocd-application-controller' : 'rfe-argocd-argocd-application-controller' unless byo
   %w[namespace project server controllerServiceAccount].each { |k| raise "required GitOps connection missing: #{k}" unless connection[k].is_a?(String) && !connection[k].empty? }
   namespace!(connection['controllerServiceAccount'])
   values['argocd'] ||= {}
@@ -214,13 +214,19 @@ begin
       ns_values = merge(values, {'namespaceOverride'=>'', 'namespaces'=>[{'name'=>'openshift-gitops-operator'}, {'name'=>control}]})
       ns_docs = render('namespaces', ns_values, control, 'rfe-gitops-namespace', dir, staged)
       phases << ['namespaces', ns_docs]
+      # The operator must reconcile the selected reference control namespace.
+      values['config'] ||= {}
+      operator_env = values['config']['env'] ||= []
+      raise 'config.env must be a list' unless operator_env.is_a?(Array)
+      operator_env.reject! { |entry| entry['name'] == 'ARGOCD_CLUSTER_CONFIG_NAMESPACES' }
+      operator_env << {'name'=>'ARGOCD_CLUSTER_CONFIG_NAMESPACES', 'value'=>control}
       phases << ['operator', render('operator', values, 'openshift-gitops-operator', 'openshift-gitops', dir, staged)]
     elsif !byo
       ns_docs = [{'apiVersion'=>'v1','kind'=>'Namespace','metadata'=>{'name'=>control}}]
       phases << ['namespaces', ns_docs]
     end
     argo_values = reference ? merge(values, {'namespaceOverride'=>control}) : values
-    control_docs = render('argocd', argo_values, control, 'rfe-argocd', dir, staged)
+    control_docs = render('argocd', argo_values, control, reference ? 'argocd' : 'rfe-argocd', dir, staged)
     if !byo
       actual = control_docs.find { |d| d['kind'] == 'ArgoCD' }
       raise 'managed controller identity must match rendered ArgoCD name' unless connection['controllerServiceAccount'] == "#{actual.dig('metadata', 'name')}-argocd-application-controller"
@@ -251,14 +257,16 @@ begin
         seconds = options[:timeout].to_i * {'s'=>1, 'm'=>60, 'h'=>3600}.fetch(options[:timeout][-1])
         deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + seconds
         loop do
-          remaining = [(deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)).ceil, 1].max
+          remaining = (deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)).ceil
+          raise 'controller readiness timeout: no StatefulSet or Deployment uses configured controller ServiceAccount' if remaining <= 0
           data = JSON.parse(run('kubectl', 'get', 'statefulsets,deployments', '-n', control, '-o', 'json', "--request-timeout=#{remaining}s"))
           controllers = data.fetch('items').select { |item| item.dig('spec', 'template', 'spec', 'serviceAccountName') == connection['controllerServiceAccount'] }
           unless controllers.empty?
             controllers.sort_by { |item| [item.fetch('kind'), item.dig('metadata', 'name')] }.each do |controller|
               remaining = (deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)).ceil
               raise 'controller readiness timeout' if remaining <= 0
-              run('kubectl', 'rollout', 'status', controller.fetch('kind').downcase, controller.dig('metadata', 'name'), '-n', control, "--timeout=#{remaining}s")
+              run('kubectl', 'rollout', 'status', controller.fetch('kind').downcase, controller.dig('metadata', 'name'), '-n', control, "--timeout=#{remaining}s", "--request-timeout=#{remaining}s")
+              raise 'controller readiness timeout' if Process.clock_gettime(Process::CLOCK_MONOTONIC) >= deadline
             end
             break
           end

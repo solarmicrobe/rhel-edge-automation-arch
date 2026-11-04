@@ -92,7 +92,11 @@ chart stop initialization before its first cluster operation. `--render` makes z
 cluster calls, including discovery and readiness checks. Readiness waits are bounded
 by `--timeout`. Controller readiness discovers StatefulSets and Deployments using the configured controller
 ServiceAccount in the target namespace and waits for every matching actual rollout,
-in kind/name order. A missing matching controller times out.
+in kind/name order, with one shared deadline for discovery and all matching rollouts.
+A missing matching controller times out. Reference mode preserves the historical
+`argocd` release/CR and `argocd-argocd-application-controller` ServiceAccount; its
+operator watches the selected target namespace. Modern managed mode retains
+`rfe-argocd` and `rfe-argocd-argocd-application-controller`.
 The timeout accepts a positive integer with `s`, `m`, or `h`; default `300s`.
 
 The supplied modern profile requires existing Virtualization and Pipelines operators,
