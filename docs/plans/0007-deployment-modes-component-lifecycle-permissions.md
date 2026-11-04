@@ -5,7 +5,9 @@
 GitOps/permission/ODF checkpoint implemented and reviewed on the `custom` branch. The bounded Virtualization
 connection and guest checkpoints below extend lifecycle ownership to CNV platform objects and retained VM wiring.
 The Pipelines platform, registry, Nexus and HTTPD checkpoints are implemented and independently reviewed.
-Workflow dependency validation, artifact reuse and operator entry-point wiring remain pending.
+Workflow dependency validation and artifact reuse are implemented through checkpoint 6. Operator entry-point
+wiring is locally implemented and independently integrated in checkpoint 8 below; independent review
+remains pending. Remote and runtime behavior remain unverified.
 
 Checkpoint `values-doc-examples` locks the values API names and semantics below. The first implementation checkpoint
 wires those names only where needed to prove GitOps permission ownership and ODF lifecycle behavior before broader
@@ -956,3 +958,184 @@ push rejections remain unresolved.
 At `2026-11-04 05:37:53 UTC`, cumulative execution was 7,126 seconds of 21,600:
 4,715 + 120 carried seconds + 2,291 seconds since `2026-11-04 04:59:42 UTC`.
 Disposition and commit time after that timestamp remains chargeable.
+
+### Checkpoint 8 operator entry-point candidate — repair 1 stopped
+
+Checkpoint `8/10` remains an unverified implementation candidate on immutable start
+`0db266208341e0d196f92fbe229a7773735d55a9`; no commit or review disposition was made.
+Candidate surfaces are `setup/init.sh`, new `setup/init.rb`, `README.md` and new
+`tests/plan0007-init.rb`. Both user-owned goal files remain preserved and excluded.
+
+Repair ledger (checkpoint 8 only): `1/5` consumed. Initial attempt 0 at
+`2026-11-04 05:47:12 UTC` passed Ruby helper/test and Bash syntax but stopped on the
+first actual Helm isolated managed render: `local chart dependency escapes staged charts`.
+Fresh repair 1 proved that this host's `Dir.mktmpdir` returns `/var/folders/...` while
+`File.realpath` returns `/private/var/folders/...`. The helper canonicalized the chart
+but compared it to a noncanonical staged root. Repair 1 adds only
+`root = File.realpath(root)` in `prepare`; containment protection remains enforced.
+No test or fixture was changed in this repair.
+
+First verification of repair 1 began `2026-11-04 05:49:15 UTC`:
+
+- `ruby -c setup/init.rb`: exit 0 at `05:49:15 UTC`.
+- `ruby -c tests/plan0007-init.rb`: exit 0 at `05:49:15 UTC`.
+- `/bin/bash -n setup/init.sh`: exit 0 at `05:49:15 UTC`.
+- `ruby tests/plan0007-init.rb`: exit 1 at `05:49:16 UTC`, first managed mode,
+  managed permissions, custom namespace `--render` case, at test line 50:
+  `rfe-init: expected STREAM-START`.
+
+Execution stopped at that first unexpected candidate failure. No subsequent repair,
+rerun, inherited render suite, inventory suite or final diff check occurred in this
+fixer cycle. A fresh bounded fixer and explicit next-repair authorization are required
+before diagnosis-driven mutation and verification continue. No live cluster access,
+push, dependency installation, paid operation or privileged Pipeline execution occurred;
+the failed test used isolated PATH stubs, actual Helm and a dummy kubeconfig.
+
+At `2026-11-04 05:49:16 UTC`, cumulative execution was 7,809 of 21,600 seconds:
+7,758 seconds at `05:48:25 UTC` plus 51 elapsed seconds. Receipt and subsequent
+coordination time remain chargeable. Remote and runtime behavior remain unverified.
+
+### Checkpoint 8 repair 2 — locally verified, integration and review pending
+
+Repair ledger: `2/5` consumed for checkpoint `8/10`. Repair 1 and its first failing
+verification remain recorded above. Fresh repair 2 diagnosed the exact parser failure
+before editing: on Ruby `2.6.10`, Psych `3.1.0`, serializing an individual
+`Psych::Nodes::Document` with `doc.to_yaml` raises `RuntimeError: expected STREAM-START`
+at `psych/visitors/emitter.rb:42`, before `YAML.safe_load` is called. A synthetic valid
+ArgoCD YAML document reproduced the failure without Helm or cluster calls. Wrapping
+each document in a `Psych::Nodes::Stream` reproduced successful safe parsing for two
+documents. The sole repair wraps each parsed document in a stream before serialization;
+per-document `YAML.safe_load(..., aliases: true)` remains in place. No unsafe load,
+error suppression, test or fixture change was introduced.
+
+Repair 2 verification began at `2026-11-04 05:50:38 UTC`:
+
+- `ruby -c setup/init.rb`, `ruby -c tests/plan0007-init.rb`, and
+  `/bin/bash -n setup/init.sh`: exit 0.
+- `ruby tests/plan0007-init.rb`: exit 0, 32 isolated initialization checks passed by
+  `05:51:11 UTC`, using actual Helm, PATH-resolved Helm/kubectl stubs and dummy kubeconfig.
+  These exercise four modes, both permission settings, custom namespaces, recursive
+  preflight, argument/configuration rejection, render with zero API calls, readiness,
+  injected failures and missing tools.
+- `ruby tests/plan0007-render.rb`: began `05:51:11 UTC`, exit 0 before `05:51:51 UTC`;
+  397 inherited checks, 215 workflow/default comparisons, 100 operator/RBAC checks,
+  and 123 recursive modern/admin checks passed.
+- `ruby tests/plan0007-byo-inventory.rb`: began `05:51:51 UTC`, exit 0 by
+  `05:52:10 UTC`; four host cases, both scheduler guards, HTTPD pod-query fixture,
+  actual add_host namespace paths, ISO destination and default/custom managed
+  inventory/scheduler queries passed.
+- `git diff --check`: exit 0 immediately after the inventory suite.
+
+The candidate is locally implemented and verified, not independently integrated or
+reviewed. Fresh integration must consume this unchanged passing candidate without
+repairs. No commit, push, cluster mutation, dependency installation, paid operation
+or privileged Pipeline execution occurred. Both user-owned goal files are preserved
+and excluded from this repair. Runtime reconciliation, authorization, images, guests,
+Secrets and remote state remain unverified; whole-plan completion is not claimed.
+
+At `2026-11-04 05:52:10 UTC`, cumulative execution was 7,983 of 21,600 seconds:
+7,809 seconds at `05:49:16 UTC` plus 174 elapsed seconds. Receipt and subsequent
+coordination time remain chargeable.
+
+### Checkpoint 8 repair 3 — cache isolation verified, fresh integration pending
+
+The repair 2 local pass above was not reproducible in fresh integration. At
+`2026-11-04 05:53:32 UTC`, independent integration passed Ruby helper/test syntax,
+Bash syntax and whitespace checks, then stopped at `tests/plan0007-init.rb:84`:
+`root alias contract inconsistent` (stack lines 57, 56, 11). Integration made no
+candidate changes. This separate failure is the trigger for fresh repair 3;
+checkpoint `8/10` has now consumed `3/5` remediation attempts.
+
+Before editing, repair 3 inspected the actual environment (Ruby `2.6.10`, Psych
+`3.1.0`, Helm `4.3.0`, Bash `3.2.57`) and emitted values. Six modern mode/ownership
+render projections preserved the expected contract. An unchanged full isolated
+suite, evaluated in memory with a diagnostic-only exception message, reproduced the
+failure for `byo-cluster-argocd` with managed permissions: the applied
+`rfe-automation` Application retained custom namespaces but its inline child values
+omitted deployment, permissions, components, workflows and other forwarded sections;
+its project also reverted to `default`.
+
+The checkout contains ignored, previously generated dependency archives. In
+particular, `charts/bootstrap/charts/application-manager-0.1.0.tgz` contains the old
+`application-manager.chartValues` helper that forwards only chart values and global.
+The adapter copied this archive and added a current unpacked dependency alongside it.
+These duplicate named-template definitions explain the observed unchanged-candidate
+pass/fail discrepancy: Helm could select the historical helper, dropping the root
+ownership contract. The prior local pass did not prove deterministic isolation from
+checkout caches. No ownership expectation was relaxed.
+
+Repair 3 removes each staged chart's dependency cache before rebuilding only its
+already-declared local `file://` dependencies. Source checkout caches remain untouched.
+A new deterministic regression copies charts and the required setup files into a
+private temporary fixture, inserts a malformed cached dependency, and requires a
+successful render with exact BYO/external child ownership, no permission/control-plane
+objects, zero API calls and an unchanged source poison fixture. The original strict
+mode/permission/namespace assertion is unchanged. No chart/profile or README change
+was needed for this repair.
+
+One complete post-repair verification ran from `2026-11-04 05:56:22 UTC`:
+
+- Ruby helper/test syntax and Bash syntax passed by `05:56:22 UTC`.
+- `ruby tests/plan0007-init.rb` passed at `05:56:48 UTC`: 33 isolated checks, the
+  original 32 plus the dependency-cache regression, using real Helm, verified PATH
+  stubs and dummy kubeconfig.
+- `ruby tests/plan0007-render.rb` passed at `05:57:21 UTC`: 397 complete Helm checks,
+  215 workflow/default comparisons, 100 operator/RBAC checks and 123 recursive
+  modern/admin checks.
+- `ruby tests/plan0007-byo-inventory.rb` passed at `05:57:34 UTC`: four inventory
+  cases, scheduler guards, HTTPD query, actual add_host namespace paths, ISO destination,
+  and default/custom managed inventory/scheduler queries.
+- `git diff --check` passed at `05:57:34 UTC`.
+
+The complete checkpoint 8 ledger is: attempt 0 failed staged-root containment;
+repair 1 canonicalized that root and stopped at Psych document serialization;
+repair 2 wrapped documents in streams and passed locally; fresh integration then
+failed ownership forwarding; repair 3 isolated staged dependency caches and passed
+one complete verification. No additional fix/reverify cycle occurred in repair 3.
+Fresh independent integration must consume the unchanged candidate without repairs.
+The candidate is locally implemented and verified, with integration and review pending;
+remote state, runtime reconciliation, actual images/Secrets/guests, operator execution
+and authorization remain unverified. No whole-plan completion is claimed.
+
+At `2026-11-04 05:57:34 UTC`, cumulative execution was 8,307 of 21,600 seconds:
+8,065 seconds at `05:53:32 UTC` plus 242 elapsed seconds. Receipt and later coordination
+remain chargeable. No commit, push, live cluster mutation, dependency installation,
+paid operation, privileged Pipeline execution or subagent occurred in this fixer.
+Both pending user-owned goal files remain preserved and excluded.
+
+
+### Checkpoint 8 independent integration — review pending
+
+Fresh integration owner consumed repair 3 without code changes, on branch `custom`
+at immutable starting HEAD `0db266208341e0d196f92fbe229a7773735d55a9`.
+The helper SHA-256 was
+`5b6ca3b18db04b6f80eb1f00be422f7007715578c2b59b33aedc45be9dc3eb11`;
+the focused test SHA-256 was
+`f4e4910c7302458c8c0ac3af3be4ccebd6ba44d55c6eb99b103e42b20ab13dff`.
+Both matched the repair receipt before and after independent verification.
+
+At `2026-11-04 05:59:33 UTC`, independent verification completed with exit 0:
+Ruby helper and test syntax, Bash wrapper syntax, `git diff --check`, and all 33
+isolated initialization checks using real Helm, PATH-verified stubs and dummy
+kubeconfig. The checks cover four modes, managed/external ownership, custom
+namespaces, preflight before API calls, invalid inputs, zero-API rendering,
+bounded readiness, injected failures, missing tools, BYO shared-namespace
+non-mutation and the staged dependency-cache regression. Strict child ownership
+assertions remained unchanged. Integration inspected the complete repair 3 broad
+receipt (397 inherited checks, 215 workflow/default comparisons, 100 operator/RBAC
+checks, 123 recursive modern/admin checks and inventory/scheduler cases) instead
+of repeating those passing suites against an unchanged candidate.
+
+The integrated local commit contains exactly `setup/init.sh`, `setup/init.rb`,
+`README.md`, `tests/plan0007-init.rb` and this plan. Both user-owned goal files
+remain uncommitted and excluded. Integration made no repairs; checkpoint `8/10`
+remains at `3/5` remediation attempts. The implementation is ready for independent
+source review, not reviewed or approved. Remote state, live reconciliation,
+authorization, images, Secrets and guests remain unverified. No whole-plan
+completion is claimed. No push, cluster mutation, CRC operation, privileged Pipeline,
+dependency installation or paid operation occurred.
+
+At `2026-11-04 05:59:33 UTC`, cumulative execution was 8,426 of 21,600 seconds:
+8,307 seconds at `05:57:34 UTC` plus 119 elapsed seconds. Receipt, commit and later
+coordination remain chargeable. The commit carrying this receipt is the immutable
+integration output; the next lifecycle stage is independent review.

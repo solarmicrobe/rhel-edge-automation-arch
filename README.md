@@ -46,6 +46,75 @@ OpenShift is used to host all of the above site components. These components inc
 
 Before beginning, make sure you have the latest versions of `oc`/`kubectl`, `git`, `tkn` and `helm` clients installed. You will also need to generate an SSH key pair for the Image Builder VMs (example using `ssh-keygen` documented below).
 
+### Modern initialization (preferred)
+
+Use Bash 3.2+, Ruby 2.6+ (standard libraries only), and Helm 3. Applying also requires
+`kubectl`, an explicit kubeconfig and administrative rights for the rendered access layer.
+No gems or chart repository downloads are needed: dependencies are copied from local
+`file://` charts into a private temporary directory and cleaned up on exit.
+
+Start with a render, replace the dummy inputs in a local overlay, and inspect every phase:
+
+```shell
+./setup/init.sh --render --values my-environment.yaml > /tmp/rfe-review.yaml
+./setup/init.sh --values my-environment.yaml --timeout 300s
+```
+
+The default is `managed-rfe-argocd`. The existing OpenShift GitOps operator must already
+watch the selected control namespace. Initialization creates only that owned control
+namespace and its namespace ArgoCD. The workload namespace must already exist.
+For existing ArgoCD instances use either of these modes:
+
+```shell
+./setup/init.sh --mode byo-rfe-argocd --values my-environment.yaml --render
+./setup/init.sh --mode byo-cluster-argocd --values my-environment.yaml --render
+```
+
+BYO never installs the operator or ArgoCD and never updates the existing target
+Namespace, even when it is also the workload namespace. Its AppProject and permissions
+are external by default. The platform owner must provide the configured project,
+controller identity, namespace access, and Applications access, or explicitly opt into
+`argocd.appProject.create` and/or `permissions.mode: managed`. Initialization applies
+runtime RBAC, the Applications-only control grant, and Bootstrap administrative grants
+before workload Applications. The workload ArgoCD is not given RBAC management rights.
+
+The base inputs are `setup/values-modern.yaml` plus the corresponding BYO overlay.
+Repeated `--values FILE` arguments merge in order, with the last value winning. Root
+values are authoritative and are explicitly forwarded into Bootstrap aliases and the
+nested workload charts. A supplied `deployment.mode` selects the profile; an explicit
+`--mode` must agree with it. Conflicting alias ownership is rejected. Namespace flags
+`--target-namespace` and `--workload-namespace` override root values; otherwise the target
+uses `components.gitops.connection.namespace`, then `argocd.target.namespace`, while the
+workload uses `namespaceOverride`. Defaults are profile-specific control namespaces and
+`rfe` for workloads. Root controller identity and images are used by the administrative
+and actual workload layers. Invalid inputs or any invalid emitted local descendant
+chart stop initialization before its first cluster operation. `--render` makes zero
+cluster calls, including discovery and readiness checks. Readiness waits are bounded
+by `--timeout`. Controller readiness discovers StatefulSets and Deployments using the configured controller
+ServiceAccount in the target namespace and waits for every matching actual rollout,
+in kind/name order. A missing matching controller times out.
+The timeout accepts a positive integer with `s`, `m`, or `h`; default `300s`.
+
+The supplied modern profile requires existing Virtualization and Pipelines operators,
+the RHEL 8 DataSource, storage classes, bucket/storage connections, registry and Nexus
+endpoints. Create the referenced registry publisher/pull, Nexus publisher, RHSM portal,
+and Image Builder SSH Secrets in the configured namespaces before applying. Replace
+`registry.example.com` runner/HTTPD images and endpoints with usable existing images
+and services. Review the complete profile for exact connection and Secret names.
+The retained VM uses the DataSource model. Root `gitRepository`/`gitBranch` and
+`pipelines.repos.tooling` configure the actual guest and runtime clones; set the nested
+Application-manager `common.repoURL`/`targetRevision` values for its source charts too.
+The supplied fork sources use `solarmicrobe/...` at `custom`; pin all chart and runtime
+sources to a verified commit before live use. External permission owners remain
+responsible for all required runtime grants. Local render checks do not verify live
+operator reconciliation, runtime authorization, images, guests, or Secret contents.
+
+### Historical reference environment
+
+The following instructions describe the broader legacy reference stack. They are
+optional and require explicit `reference-full-stack` selection; modern installations
+should use the initialization commands above.
+
 ### Bootstrapping Environment
 
 First clone the repository by running the following command:
@@ -110,10 +179,10 @@ rhsm:
 
 #### Deploy OpenShift GitOps Operator and Argo CD
 
-Once the SSH keypair and values file are in place, we can begin to deploy. Run the following script to install the OpenShift GitOps Operator and Argo CD.
+Once the SSH keypair and values file are in place, inspect the explicit reference initialization render below. Remove `--render` only after review to install the OpenShift GitOps Operator and Argo CD. This preserves the historical operator/control-plane initialization; the reference Bootstrap deployment remains a separate step.
 
 ```shell
-./setup/init.sh
+./setup/init.sh --mode reference-full-stack --render
 ```
 
 ### Deploying
