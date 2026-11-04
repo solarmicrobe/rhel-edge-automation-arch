@@ -5,7 +5,7 @@
 {{- $connection := dig "connection" dict $httpd -}}
 {{- if not (kindIs "map" $connection) -}}{{- fail "components.httpd.connection must be an object" -}}{{- end -}}
 {{- range $field := list "routeName" "routeNamespace" "podNamespace" "podLabelSelector" "webRoot" "stageServiceAccountName" -}}
-{{- if and (eq $mode "byo") (empty (get $connection $field)) -}}{{- fail (printf "components.httpd.connection.%s is required for BYO HTTPD" $field) -}}{{- end -}}
+{{- if and (and $.consumer (eq $mode "byo")) (empty (get $connection $field)) -}}{{- fail (printf "components.httpd.connection.%s is required for BYO HTTPD" $field) -}}{{- end -}}
 {{- if hasKey $connection $field -}}
 {{- $value := get $connection $field -}}
 {{- if not (kindIs "string" $value) -}}{{- fail (printf "components.httpd.connection.%s must be a string" $field) -}}{{- end -}}

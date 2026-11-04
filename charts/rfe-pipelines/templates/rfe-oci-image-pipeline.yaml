@@ -1,3 +1,5 @@
+{{- include "rfePipelines.validate" . -}}
+{{- if eq (include "rfePipelines.workflow" (dict "Values" .Values "name" "composeImage")) "true" -}}
 apiVersion: tekton.dev/v1
 kind: Pipeline
 metadata:
@@ -149,3 +151,5 @@ spec:
       workspaces:
         - name: workspace
           workspace: shared-workspace
+
+{{- end -}}

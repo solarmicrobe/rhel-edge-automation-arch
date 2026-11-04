@@ -589,3 +589,131 @@ expression without running the transfer. The complete 397-check suite was not re
 only this plan. Local approval does not establish pushed integration, a PR approval gate, CI success or live pod
 execution, serving, permissions, storage access or staging readiness. Remote push remains blocked pending direct
 user authorization after the earlier automatic approval review rejection; no bypass was attempted.
+
+### Workflow dependencies and artifact reuse checkpoint (integration verified; independent review pending)
+
+Checkpoint `5/10` adds five independent, strict boolean workflow switches, all defaulting to true:
+`workflows.composeImage.enabled`, `stageImage.enabled`, `publishOstree.enabled`, `publishIso.enabled`
+and `serveKickstarts.enabled`. Each switch suppresses its complete Pipeline/Task group when false.
+All workflows disabled also suppresses the Pipelines defaults ConfigMap and workflow-owned RBAC.
+The existing names, parameters, results and complete parsed managed default manifests remain unchanged.
+
+Dependencies now follow actual enabled consumers:
+
+| Workflow | Required capabilities and authorization |
+|:---------|:----------------------------------------|
+| `composeImage` | Pipelines, retained Image Builder guest, writable registry and `registry.image.push`; BYO registry image path and publisher Secret. |
+| `stageImage` | Pipelines, readable registry and HTTPD staging namespace/service account; explicit BYO `httpServing.staging.create`. It needs no Image Builder guest, publisher Secret or image push. |
+| `publishOstree` | Pipelines, existing staged content in the HTTPD pod namespace, destination pod/Route/web root and `httpServing.content.write`. The stage and compose producer workflows may be disabled. |
+| `publishIso` | Pipelines, retained Image Builder guest, destination pod/Route/web root and `httpServing.content.write`; Nexus only when artifact upload is approved. |
+| `serveKickstarts` | Pipelines, destination pod/Route/web root and `httpServing.content.write`; Nexus only when artifact upload is approved. No guest or registry is required. |
+
+The ISO installer Task composes on the retained guest and injects its BYO host into the Ansible inventory.
+The clarified accepted contract therefore requires BYO guest `host` and `sshSecretName` whenever either
+`composeImage` or `publishIso` is active. When both are disabled, absent guest connections are accepted.
+RHEL runtime/major/architecture/repository constraints follow those two compose consumers; the container
+compose type is required only by `composeImage`, the installer type only by `publishIso`, and matching
+OSTree references by ISO and OSTree publication. Stage and kickstart consumers can reuse existing artifacts
+without unrelated RHEL runtime validation. No bootc/image-mode implementation is introduced.
+
+Existing `image-path`/`image-tag`, `kickstart-url` and `ostree-repo-url` parameters remain the reuse boundary.
+A configured registry image path optionally supplies the stage Pipeline parameter default. Read-only BYO
+registry and HTTPD installation charts no longer require workflow-only connections; supplied malformed
+connections, lifecycle values, object flags and workflow shapes still fail validation. Approved Nexus uploads
+require only the selected consumer's repository and relevant endpoint fields.
+
+`components.registry.connection.pullSecretName` names an optional pre-existing pull Secret for private staging.
+Managed staging service-account permissions use that Secret, with the existing managed publisher fallback;
+public BYO staging needs no publisher credential. The configured BYO staging namespace and service account
+receive the staging grants. External permission ownership renders no repository-owned ServiceAccount,
+Role or RoleBinding and creates, copies or patches no credentials. The platform owner must supply the selected
+Secret in the staging namespace. General workflow RBAC receives only ownership/all-disabled guards in this
+checkpoint; broader capability-scoped RBAC and modern operator entry points remain checkpoint 6 work.
+
+Application Manager validates effective parent/child workflow dependencies and forwards workflow ownership,
+connections and optional pull credentials by actual supported local paths, including `common.chartPath`.
+Parent values take precedence. Workflow values do not leak to unrelated or external charts. The reuse example
+is `examples/values/workflows-existing-image.yaml`, with dummy endpoint references and external permissions.
+
+Local verification: `ruby tests/plan0007-render.rb` passes the existing 397 checks plus 215 workflow renders,
+including each workflow alone, local Task references, all-disabled output, private BYO stage-only reuse,
+external permission suppression, independent existing-source publication, relevant/irrelevant connections,
+strict malformed/null workflow shapes, typed flags, RHEL capability boundaries, parent precedence and
+standalone staging authorization. The workflow suite compares complete parsed default manifests against
+starting revision `560277ffbbc605046c2dad3511bf62db9c8c4106` for Pipelines, RBAC, Quay, Nexus, HTTPD,
+Image Builder VM and five actual Application paths. `ruby tests/plan0007-byo-inventory.rb` passes four local
+Ansible inventory cases, both scheduler guards, HTTPD pod-query/add-host namespace fixtures and ISO destination
+checks. The reuse example renders two workflow resources and zero external-owned RBAC objects; Ruby syntax
+and `git diff --check` pass.
+
+The implementation budget audit conservatively records `11/5` fix/reverify cycles, exceeding the
+accepted checkpoint limit. The earlier reported `4/5` incorrectly grouped distinct failed candidate runs
+and excluded fixture repairs. The actual chronological ledger is:
+
+1. Default Helm rendering failed at a validation-template parenthesis; repaired and rerendered successfully.
+2. The existing suite rejected a manager child with absent managed HTTPD defaults; relaxed its required-value
+   boundary and reran. The next failure exposed missing platform-only Pipelines validation.
+3. Restored platform-only Pipelines validation and reran; the suite reached the obsolete mandatory Quay
+   BYO connection assertion.
+4. Updated intentional provider-only connection expectations and consumer validation, then reran; the suite
+   reached the obsolete BYO Nexus connection assertion when uploads were not approved.
+5. Updated that negative test to approve Nexus uploads explicitly, then reran; child falsey Nexus values
+   failed with the wrong validation reason.
+6. Validated Nexus lifecycle mode before deriving upload behavior, then reran; HTTPD provider validation
+   exposed an incorrectly scoped `.consumer` reference inside a range.
+7. Corrected the provider range reference, then reran; the managed HTTPD safety assertion expected only
+   the template error rather than the new schema rejection.
+8. Accepted the field-specific schema rejection and consolidated capability validation, then reran;
+   all 397 existing render checks passed.
+9. The expanded focused test file had a Ruby syntax error before any assertions executed; repaired the
+   extra brace and reran. The next run reached an invalid baseline symlink write.
+10. Restricted baseline restoration to the affected charts and removed copied symlinks before writing,
+    then reran; aggregated failures showed Helm null flags silently reverting to defaults and the empty
+    YAML test fixture being serialized incorrectly.
+11. Required the defaulted workflow entries/flags in the Pipelines and RBAC schemas and corrected the
+    empty YAML fixture, then reran; 198 focused checks passed. Added null/shape coverage and the final
+    required-suite invocation subsequently passed all 397 existing plus 215 workflow checks.
+
+Intentional expectation updates and fixture repairs are included in this conservative budget accounting;
+they are not classified as free merely because production behavior was otherwise correct. The limit should
+have stopped work at cycle 5. It was detected retrospectively during receipt audit. Implementation and testing
+were stopped at that audit. Passing output alone did not authorize another lifecycle transition, budget reset or integration.
+
+At that audit implementation was uncommitted; `integration_ready=false` because the checkpoint repair
+limit was exceeded. A governor/user disposition was required before any further lifecycle action. No push, cluster action, dependency installation, provisioning or privileged
+Pipeline execution occurred. Private pulls, actual permissions, guest execution, writable serving storage,
+publication and live Tekton behavior remain unverified. Existing user goal-prompt edits and the untracked
+remaining-goal plan were preserved outside this implementation.
+
+
+#### User amendment and fresh integration revalidation (2026-11-03)
+
+The user explicitly authorized three more attempts after the historical eleven fix/reverify cycles.
+The historical `11/5` overrun above remains recorded. The amended checkpoint cap is fourteen total
+cycles: prospective cycles 12–14, with `0/3` newly authorized attempts used and `3/3` remaining.
+Successful baseline revalidation consumed no remediation attempt; no implementation or test change
+was needed during this fresh integration stage. This amendment does not reset the ten-checkpoint
+or six-hour cumulative execution limits and does not authorize checkpoint 6 in this integration unit.
+
+Fresh integration started from `560277ffbbc605046c2dad3511bf62db9c8c4106` on `custom`.
+`ruby tests/plan0007-render.rb` passed 397 existing checks and all 215 focused workflow checks.
+The focused suite passed complete parsed managed-default comparisons against that immutable base
+for Pipelines, RBAC, Quay, Nexus, HTTPD, Image Builder VM and five actual Application chart paths.
+`ruby tests/plan0007-byo-inventory.rb` passed four local inventory cases, both scheduler guards,
+the HTTPD pod-query fixture, both actual add-host namespace paths and ISO destination checks.
+`git diff --check` passed. The verified candidate is frozen by the commit containing this entry;
+its revision must be supplied to a fresh independent reviewer. `integration_ready=true` applies
+only to this bounded candidate; it is not review approval, merge readiness or Plan 0007 completion.
+
+Execution accounting retains 4,715 seconds before the pause, plus 120 seconds of conservative
+resume setup overhead, plus execution since `2026-11-04 04:59:42 UTC`; the blocked interval is
+excluded. At `2026-11-04 05:00:55 UTC`, cumulative execution was 4,908 seconds of 21,600 seconds.
+This is checkpoint `5/10`; no new six-hour window was opened. The parent continues this cumulative
+clock through commit and review. No push, dependency installation, cluster action, provisioning,
+paid resource or privileged Pipeline execution occurred during integration.
+
+Independent review and any numbered, authorized remediation remain next. Checkpoint 6 still owns
+broader capability-scoped RBAC and modern deployment/operator entry-point wiring. Private pulls,
+actual permissions, guest execution, writable serving storage, publication and live Tekton behavior
+remain unverified. The modified older goal prompt and untracked remaining-goal plan stay outside
+this commit and retain their existing contents.

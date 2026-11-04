@@ -1,3 +1,5 @@
+{{- include "rfePipelines.validate" . -}}
+{{- if eq (include "rfePipelines.workflow" (dict "Values" .Values "name" "composeImage")) "true" -}}
 apiVersion: tekton.dev/v1
 kind: Task
 metadata:
@@ -71,3 +73,5 @@ spec:
       secret:
         defaultMode: 0440
         secretName: "$(params.image-builder-secret)"
+
+{{- end -}}

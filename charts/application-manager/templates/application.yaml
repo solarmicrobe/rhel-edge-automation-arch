@@ -26,7 +26,7 @@ spec:
     server: {{ include "application-manager.argocdServer" (dict "chart" $chart "Values" $.Values "Release" $.Release) }}
   project: {{ include "application-manager.argocdProject" (dict "chart" $chart "Values" $.Values "Release" $.Release) }}
   source:
-{{- if or ($chart.parameters) ($chart.valueFiles) ($chart.values) $.Values.global $.Values.deployment $.Values.permissions $.Values.components }}
+{{- if or ($chart.parameters) ($chart.valueFiles) ($chart.values) $.Values.global $.Values.deployment $.Values.permissions $.Values.components $.Values.workflows $.Values.publicationEndpoints $.Values.rhelTarget }}
     helm:
 {{- if $chart.parameters }}
       parameters:
@@ -41,7 +41,7 @@ spec:
         - {{- . | toYaml | nindent 10 -}}
       {{- end }}
 {{- end }}
-{{- if or ($chart.values) $.Values.global $.Values.deployment $.Values.permissions $.Values.components }}
+{{- if or ($chart.values) $.Values.global $.Values.deployment $.Values.permissions $.Values.components $.Values.workflows $.Values.publicationEndpoints $.Values.rhelTarget }}
       values: |
         {{- include "application-manager.chartValues" (dict "chart" $chart "chartName" $chartName "Values" $.Values "context" $) | nindent 8 }}
 {{- end }}

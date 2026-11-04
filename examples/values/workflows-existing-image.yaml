@@ -1,0 +1,47 @@
+# Stage an existing private OCI artifact without composing or pushing a new image.
+# The platform owner supplies the named Pipelines operator, staging ServiceAccount,
+# pull Secret in staging-rfe, permissions, and compatible image content/tools.
+permissions:
+  mode: external
+workflows:
+  composeImage:
+    enabled: false
+  stageImage:
+    enabled: true
+  publishOstree:
+    enabled: false
+  publishIso:
+    enabled: false
+  serveKickstarts:
+    enabled: false
+components:
+  pipelines:
+    mode: byo
+    connection:
+      namespace: openshift-pipelines
+  registry:
+    mode: byo
+    connection:
+      imagePath: registry.example.com/rfe/existing-edge
+      pullSecretName: existing-registry-pull
+  imageBuilderVM:
+    mode: disabled
+  nexus:
+    mode: disabled
+  httpd:
+    mode: byo
+    connection:
+      podNamespace: staging-rfe
+      stageServiceAccountName: existing-stage
+publicationEndpoints:
+  registry:
+    image:
+      push: false
+  httpServing:
+    staging:
+      create: true
+pipelines:
+  repos:
+    tooling:
+      repoURL: https://github.com/solarmicrobe/rhel-edge-automation-arch.git
+      targetRevision: custom

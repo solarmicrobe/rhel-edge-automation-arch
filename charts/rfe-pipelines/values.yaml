@@ -35,7 +35,7 @@ publicationEndpoints:
     publisherSecretName: publisher
     setupSecretName: quay-rfe-setup
     # image.push is optional: managed defaults true; BYO defaults false.
-    # Current mandatory publication pipelines require an explicit true in BYO.
+    # Enabled composeImage requires an explicit true in BYO.
   artifactRepository:
     mode: managed-reference
     disabledResultValue: ""
@@ -51,7 +51,8 @@ publicationEndpoints:
       autoIsoRepository: rfe-auto-iso
   httpServing:
     # content.write and staging.create are optional booleans: managed defaults
-    # true, BYO defaults false. Mandatory workflows currently require both true.
+    # true, BYO defaults false. stageImage requires staging.create; content
+    # publication consumers require content.write.
     mode: managed-reference
     routeName: httpd
     routeNamespace: rfe
@@ -96,3 +97,17 @@ components:
     mode: managed
     connection: {}
     # artifacts.upload defaults true in managed, false in BYO.
+
+# Infrastructure ownership and workflow intent are independent. Existing image-path/
+# image-tag, kickstart-url and ostree-repo-url parameters can reuse external sources.
+workflows:
+  composeImage:
+    enabled: true
+  stageImage:
+    enabled: true
+  publishOstree:
+    enabled: true
+  publishIso:
+    enabled: true
+  serveKickstarts:
+    enabled: true

@@ -1,3 +1,5 @@
+{{- include "rfePipelines.validate" . -}}
+{{- if eq (include "rfePipelines.workflow" (dict "Values" .Values "name" "stageImage")) "true" -}}
 apiVersion: tekton.dev/v1
 kind: Pipeline
 metadata:
@@ -19,6 +21,9 @@ spec:
       type: string
     - name: image-path
       description: Path to RFE Container Image
+      {{- if include "rfePipelines.registryImagePath" . }}
+      default: {{ include "rfePipelines.registryImagePath" . | quote }}
+      {{- end }}
       type: string
     - name: image-tag
       description: Tag Associated with the RFE Image to Deploy
@@ -64,3 +69,5 @@ spec:
       workspaces:
         - name: workspace
           workspace: shared-workspace
+
+{{- end -}}

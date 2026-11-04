@@ -1,1 +1,13 @@
 ---
+
+workflows:
+  composeImage:
+    enabled: true
+  stageImage:
+    enabled: true
+  publishOstree:
+    enabled: true
+  publishIso:
+    enabled: true
+  serveKickstarts:
+    enabled: true

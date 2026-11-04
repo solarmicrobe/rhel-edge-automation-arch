@@ -1,3 +1,5 @@
+{{- include "rfePipelines.validate" . -}}
+{{- if eq (include "rfePipelines.workflow" (dict "Values" .Values "name" "serveKickstarts")) "true" -}}
 apiVersion: tekton.dev/v1beta1
 kind: Pipeline
 metadata:
@@ -86,3 +88,5 @@ spec:
     - name: serving-storage-url
       description: Location where the asset is served
       value: $(tasks.upload-rfe-kickstart.results.serving-storage-url)
+
+{{- end -}}

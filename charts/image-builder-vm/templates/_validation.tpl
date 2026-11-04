@@ -1,16 +1,16 @@
 {{- define "imageBuilderVM.lifecycleValidate" -}}
-{{- $component := .Values.components.imageBuilderVM -}}
-{{- if eq $component.mode "byo" -}}
+{{- $consumer := or (dig "composeImage" "enabled" true (default dict .Values.workflows)) (dig "publishIso" "enabled" true (default dict .Values.workflows)) -}}
+{{- $component := dig "imageBuilderVM" dict (default dict .Values.components) -}}
+{{- if not (has (dig "mode" "managed" $component) (list "managed" "byo" "disabled")) -}}{{- fail "components.imageBuilderVM.mode must be one of: managed, byo, disabled" -}}{{- end -}}
+{{- $connection := default dict $component.connection -}}
 {{- range $field := list "host" "sshSecretName" -}}
-{{- if empty (get $component.connection $field) -}}
-{{- fail (printf "components.imageBuilderVM.connection.%s is required for BYO Image Builder VM" $field) -}}
-{{- end -}}
-{{- end -}}
-{{- if not (regexMatch "^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?(\\.[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*$" $component.connection.host) -}}
-{{- fail "components.imageBuilderVM.connection.host must be a DNS name or IPv4 address" -}}
-{{- end -}}
-{{- if not (regexMatch "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$" $component.connection.sshSecretName) -}}
-{{- fail "components.imageBuilderVM.connection.sshSecretName must be a Kubernetes DNS name" -}}
+{{- if and $consumer (eq (get $component "mode") "byo") (empty (get $connection $field)) -}}{{- fail (printf "components.imageBuilderVM.connection.%s is required for BYO Image Builder VM" $field) -}}{{- end -}}
+{{- if hasKey $connection $field -}}
+{{- $value := get $connection $field -}}
+{{- if not (kindIs "string" $value) -}}{{- fail (printf "components.imageBuilderVM.connection.%s must be a DNS name" $field) -}}{{- end -}}
+{{- $pattern := "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$" -}}
+{{- if eq $field "host" -}}{{- $pattern = "^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?(\\.[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*$" -}}{{- end -}}
+{{- if or (gt (len $value) 253) (not (regexMatch $pattern $value)) -}}{{- fail (printf "components.imageBuilderVM.connection.%s must be a DNS name" $field) -}}{{- end -}}
 {{- end -}}
 {{- end -}}
 {{- end -}}

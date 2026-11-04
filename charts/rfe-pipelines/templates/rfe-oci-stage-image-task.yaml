@@ -1,4 +1,5 @@
-{{- include "rfePipelines.httpdValidate" (dict "httpd" .Values.components.httpd "endpoint" .Values.publicationEndpoints.httpServing "consumer" true) -}}
+{{- include "rfePipelines.validate" . -}}
+{{- if eq (include "rfePipelines.workflow" (dict "Values" .Values "name" "stageImage")) "true" -}}
 {{- $httpServing := .Values.publicationEndpoints.httpServing -}}
 {{- if eq .Values.components.httpd.mode "byo" -}}{{- $httpServing = .Values.components.httpd.connection -}}{{- end -}}
 apiVersion: tekton.dev/v1
@@ -42,3 +43,5 @@ spec:
       command:
         - /bin/bash
         - -c
+
+{{- end -}}

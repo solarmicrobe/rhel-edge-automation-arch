@@ -6,50 +6,21 @@
 {{- $ctx := dict "chartName" $chartName "chart" $chart "Values" $.Values -}}
 {{- $path := include "application-manager.chartPath" $ctx -}}
 {{- $repoChart := include "application-manager.chartRepoPath" $ctx -}}
-{{- if and (not $chart.disabled) (not $repoChart) (has $path (list "charts/httpd" "charts/rfe-pipelines")) -}}
-{{- $httpd := mergeOverwrite (deepCopy (dig "components" "httpd" dict (default dict $chart.values))) (deepCopy (dig "httpd" dict (default dict $.Values.components))) -}}
-{{- $endpoint := mergeOverwrite (deepCopy (dig "publicationEndpoints" "httpServing" dict (default dict $chart.values))) (deepCopy (dig "httpServing" dict (default dict $.Values.publicationEndpoints))) -}}
-{{- include "application-manager.httpdValidate" (dict "httpd" $httpd "endpoint" $endpoint "consumer" (eq $path "charts/rfe-pipelines")) -}}
-{{- end -}}
-{{- if and (not $chart.disabled) (not $repoChart) (has $path (list "charts/nexus" "charts/rfe-pipelines")) -}}
+{{- if and (not $chart.disabled) (not $repoChart) (eq $path "charts/rfe-pipelines") -}}
+{{- $effective := mergeOverwrite (deepCopy (default dict $chart.values)) (deepCopy (omit $.Values "charts" "common" "global" "argocd")) -}}
+{{- include "application-manager.workflowDependencies" (dict "Values" $effective) -}}
+{{- else if and (not $chart.disabled) (not $repoChart) (eq $path "charts/operator") (eq (dig "operator" "name" "" (default dict $chart.values)) "openshift-pipelines-operator-rh") -}}
+{{- $effective := mergeOverwrite (deepCopy (default dict $chart.values)) (deepCopy (omit $.Values "charts" "common" "global" "argocd")) -}}
+{{- include "application-manager.pipelinesValidate" (dict "Values" $effective "consumer" true) -}}
+{{- else if and (not $chart.disabled) (not $repoChart) (eq $path "charts/nexus") -}}
 {{- $nexus := mergeOverwrite (deepCopy (dig "components" "nexus" dict (default dict $chart.values))) (deepCopy (dig "nexus" dict (default dict $.Values.components))) -}}
-{{- include "application-manager.nexusValidate" (dict "nexus" $nexus "consumer" (eq $path "charts/rfe-pipelines")) -}}
-{{- end -}}
-{{- if and (not $chart.disabled) (not $repoChart) (has $path (list "charts/quay" "charts/rfe-pipelines")) -}}
+{{- include "application-manager.nexusValidate" (dict "nexus" $nexus "consumer" false) -}}
+{{- else if and (not $chart.disabled) (not $repoChart) (eq $path "charts/quay") -}}
 {{- $registry := mergeOverwrite (deepCopy (dig "components" "registry" dict (default dict $chart.values))) (deepCopy (dig "registry" dict (default dict $.Values.components))) -}}
-{{- include "application-manager.registryValidate" (dict "registry" $registry) -}}
-{{- if eq $path "charts/rfe-pipelines" -}}
-{{- if eq (get $registry "mode") "disabled" -}}{{- fail "components.registry.mode=disabled cannot support mandatory image publication pipelines" -}}{{- end -}}
-{{- $endpoints := mergeOverwrite (deepCopy (dig "publicationEndpoints" dict (default dict $chart.values))) (deepCopy (default dict $.Values.publicationEndpoints)) -}}
-{{- $image := dig "registry" "image" dict $endpoints -}}
-{{- $push := ne (get $registry "mode") "byo" -}}
-{{- if hasKey $image "push" -}}{{- if not (kindIs "bool" (get $image "push")) -}}{{- fail "publicationEndpoints.registry.image.push must be boolean" -}}{{- end -}}{{- $push = get $image "push" -}}{{- end -}}
-{{- if not $push -}}{{- fail "publicationEndpoints.registry.image.push=false cannot support mandatory image publication pipelines until a future workflow slice" -}}{{- end -}}
-{{- end -}}
-{{- end -}}
-{{- if and (not $chart.disabled) (not $repoChart) (or (eq $path "charts/rfe-pipelines") (and (eq $path "charts/operator") (eq (dig "operator" "name" "" (default dict $chart.values)) "openshift-pipelines-operator-rh"))) -}}
-{{- $pipelines := mergeOverwrite (deepCopy (dig "components" "pipelines" dict (default dict $chart.values))) (deepCopy (dig "pipelines" dict (default dict $.Values.components))) -}}
-{{- if hasKey $pipelines "mode" -}}
-{{- if not (has (get $pipelines "mode") (list "managed" "byo" "disabled")) -}}
-{{- fail "components.pipelines.mode must be one of: managed, byo, disabled" -}}
-{{- end -}}
-{{- end -}}
-{{- $connection := default dict (get $pipelines "connection") -}}
-{{- if hasKey $connection "namespace" -}}
-{{- $namespace := get $connection "namespace" -}}
-{{- if not (kindIs "string" $namespace) -}}
-{{- fail "components.pipelines.connection.namespace must be a Kubernetes namespace string" -}}
-{{- end -}}
-{{- if or (gt (len $namespace) 63) (not (regexMatch "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$" $namespace)) -}}
-{{- fail "components.pipelines.connection.namespace must be a nonempty Kubernetes namespace" -}}
-{{- end -}}
-{{- end -}}
-{{- if and (eq (get $pipelines "mode") "byo") (empty (dig "connection" "namespace" "" $pipelines)) -}}
-{{- fail "components.pipelines.connection.namespace is required for BYO Pipelines" -}}
-{{- end -}}
-{{- if and (eq $path "charts/rfe-pipelines") (eq (get $pipelines "mode") "disabled") -}}
-{{- fail "components.pipelines.mode=disabled cannot support mandatory pipelines" -}}
-{{- end -}}
+{{- include "application-manager.registryValidate" (dict "registry" $registry "consumer" false) -}}
+{{- else if and (not $chart.disabled) (not $repoChart) (eq $path "charts/httpd") -}}
+{{- $httpd := mergeOverwrite (deepCopy (dig "components" "httpd" dict (default dict $chart.values))) (deepCopy (dig "httpd" dict (default dict $.Values.components))) -}}
+{{- include "application-manager.httpdValidate" (dict "httpd" $httpd "consumer" false) -}}
 {{- end -}}
 {{- end -}}
 {{- $byo := has $deploymentMode (list "byo-cluster-argocd" "byo-rfe-argocd") -}}
@@ -203,7 +174,7 @@ Injects Global Values
 {{- $chartValues := deepCopy (default dict .chart.values) -}}
 {{- $path := include "application-manager.chartPath" . -}}
 {{- $repoChart := include "application-manager.chartRepoPath" . -}}
-{{- if and (not $repoChart) (has $path (list "charts/quay" "charts/rfe-pipelines")) -}}
+{{- if and (not $repoChart) (has $path (list "charts/quay" "charts/rfe-pipelines" "charts/rbac")) -}}
 {{- if hasKey $.Values "publicationEndpoints" -}}
 {{- $_ := set $chartValues "publicationEndpoints" (mergeOverwrite (default dict (get $chartValues "publicationEndpoints")) (deepCopy $.Values.publicationEndpoints)) -}}
 {{- end -}}
@@ -224,6 +195,12 @@ Injects Global Values
 {{- $_ := set $chartValues "components" $components -}}
 {{- end -}}
 {{- end -}}
+{{- if and (not $repoChart) (has $path (list "charts/application-manager" "charts/bootstrap" "charts/image-builder-vm" "charts/rfe-pipelines" "charts/rbac")) (hasKey $.Values "workflows") -}}
+{{- $_ := set $chartValues "workflows" (mergeOverwrite (default dict (get $chartValues "workflows")) (deepCopy $.Values.workflows)) -}}
+{{- end -}}
+{{- if and (not $repoChart) (has $path (list "charts/image-builder-vm" "charts/rfe-pipelines")) (hasKey $.Values "rhelTarget") -}}
+{{- $_ := set $chartValues "rhelTarget" (mergeOverwrite (default dict (get $chartValues "rhelTarget")) (deepCopy $.Values.rhelTarget)) -}}
+{{- end -}}
 {{- $pipelinesOperator := and (not $repoChart) (eq $path "charts/operator") (eq (dig "operator" "name" "" $chartValues) "openshift-pipelines-operator-rh") -}}
 {{- if $pipelinesOperator -}}
 {{- $pipelines := dig "pipelines" dict (default dict $.Values.components) -}}
@@ -233,7 +210,7 @@ Injects Global Values
 {{- $_ := set $chartValues "components" $components -}}
 {{- end -}}
 {{- end -}}
-{{- if and (not $repoChart) (has $path (list "charts/application-manager" "charts/bootstrap" "charts/argocd" "charts/argocd-integration" "charts/odf" "charts/cnv" "charts/image-builder-vm" "charts/rfe-pipelines" "charts/quay")) -}}
+{{- if and (not $repoChart) (has $path (list "charts/application-manager" "charts/bootstrap" "charts/argocd" "charts/argocd-integration" "charts/odf" "charts/cnv" "charts/image-builder-vm" "charts/rfe-pipelines" "charts/rbac" "charts/quay")) -}}
 {{- range $key := list "deployment" "permissions" "components" -}}
 {{- if hasKey $.Values $key -}}
 {{- $_ := set $chartValues $key (mergeOverwrite (default dict (get $chartValues $key)) (deepCopy (get $.Values $key))) -}}
@@ -248,6 +225,9 @@ Injects Global Values
 {{- $_ := set $childValues $key (mergeOverwrite (default dict (get $childValues $key)) (deepCopy (get $.Values $key))) -}}
 {{- end -}}
 {{- end -}}
+{{- if and (eq $child "application-manager") (hasKey $.Values "workflows") -}}
+{{- $_ := set $childValues "workflows" (mergeOverwrite (default dict (get $childValues "workflows")) (deepCopy $.Values.workflows)) -}}
+{{- end -}}
 {{- $_ := set $chartValues $child $childValues -}}
 {{- end -}}
 {{- end -}}
@@ -257,20 +237,23 @@ Injects Global Values
 {{- define "application-manager.registryValidate" -}}
 {{- $registry := .registry -}}
 {{- if and (hasKey $registry "mode") (not (kindIs "string" (get $registry "mode"))) -}}{{- fail "components.registry.mode must be a lifecycle string" -}}{{- end -}}
-{{- if not (has (get $registry "mode" | default "managed") (list "managed" "byo" "disabled")) -}}
+{{- if not (has (dig "mode" "managed" $registry) (list "managed" "byo" "disabled")) -}}
 {{- fail "components.registry.mode must be one of: managed, byo, disabled" -}}
 {{- end -}}
+{{- if and (hasKey $registry "connection") (not (kindIs "map" (get $registry "connection"))) -}}{{- fail "components.registry.connection must be an object" -}}{{- end -}}
 {{- $connection := default dict (get $registry "connection") -}}
 {{- if hasKey $connection "imagePath" -}}
 {{- if not (kindIs "string" (get $connection "imagePath")) -}}{{- fail "components.registry.connection.imagePath must be a registry repository path" -}}{{- end -}}
 {{- if not (regexMatch "^[A-Za-z0-9][A-Za-z0-9.:-]*/[A-Za-z0-9_./-]+$" (get $connection "imagePath")) -}}{{- fail "components.registry.connection.imagePath must be a registry repository path" -}}{{- end -}}
 {{- end -}}
-{{- if hasKey $connection "publisherSecretName" -}}
-{{- $secret := get $connection "publisherSecretName" -}}
-{{- if not (kindIs "string" $secret) -}}{{- fail "components.registry.connection.publisherSecretName must be a Kubernetes DNS name" -}}{{- end -}}
-{{- if or (gt (len $secret) 253) (not (regexMatch "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$" $secret)) -}}{{- fail "components.registry.connection.publisherSecretName must be a Kubernetes DNS name" -}}{{- end -}}
+{{- range $field := list "publisherSecretName" "pullSecretName" -}}
+{{- if hasKey $connection $field -}}
+{{- $secret := get $connection $field -}}
+{{- if not (kindIs "string" $secret) -}}{{- fail (printf "components.registry.connection.%s must be a Kubernetes DNS name" $field) -}}{{- end -}}
+{{- if or (gt (len $secret) 253) (not (regexMatch "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$" $secret)) -}}{{- fail (printf "components.registry.connection.%s must be a Kubernetes DNS name" $field) -}}{{- end -}}
 {{- end -}}
-{{- if eq (get $registry "mode") "byo" -}}
+{{- end -}}
+{{- if and .consumer (eq (get $registry "mode") "byo") -}}
 {{- range $field := list "imagePath" "publisherSecretName" -}}
 {{- if empty (dig "connection" $field "" $registry) -}}
 {{- fail (printf "components.registry.connection.%s is required for BYO registry" $field) -}}
@@ -282,6 +265,7 @@ Injects Global Values
 {{- $nexus := .nexus -}}
 {{- $mode := dig "mode" "managed" $nexus -}}
 {{- if not (has $mode (list "managed" "byo" "disabled")) -}}{{- fail "components.nexus.mode must be one of: managed, byo, disabled" -}}{{- end -}}
+{{- if and (hasKey $nexus "connection") (not (kindIs "map" (get $nexus "connection"))) -}}{{- fail "components.nexus.connection must be an object" -}}{{- end -}}
 {{- $connection := default dict (get $nexus "connection") -}}
 {{- range $field, $value := $connection -}}
 {{- if eq $field "servicePort" -}}
@@ -293,11 +277,135 @@ Injects Global Values
 {{- if or (gt (len $value) 253) (not (regexMatch "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$" $value)) -}}{{- fail (printf "components.nexus.connection.%s must be a DNS name" $field) -}}{{- end -}}
 {{- end -}}
 {{- end -}}
+{{- if and (hasKey $nexus "artifacts") (not (kindIs "map" $nexus.artifacts)) -}}{{- fail "components.nexus.artifacts must be an object" -}}{{- end -}}
 {{- $artifacts := default dict (get $nexus "artifacts") -}}
 {{- if and (hasKey $artifacts "upload") (not (kindIs "bool" (get $artifacts "upload"))) -}}{{- fail "components.nexus.artifacts.upload must be boolean" -}}{{- end -}}
 {{- if and .consumer (eq $mode "byo") -}}
-{{- range $field := list "credentialsSecretName" "credentialsSecretNamespace" "serviceName" "servicePort" "httpScheme" "routeName" "routeNamespace" "kickstartRepository" "autoIsoRepository" -}}
+{{- $required := list "credentialsSecretName" "credentialsSecretNamespace" "serviceName" "servicePort" "httpScheme" -}}
+{{- if .kickstart -}}{{- $required = concat $required (list "routeName" "routeNamespace" "kickstartRepository") -}}{{- end -}}
+{{- if .iso -}}{{- $required = append $required "autoIsoRepository" -}}{{- end -}}
+{{- range $field := $required -}}
 {{- if empty (get $connection $field) -}}{{- fail (printf "components.nexus.connection.%s is required for BYO Nexus consumers" $field) -}}{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- define "application-manager.workflow" -}}
+{{- $workflows := dict -}}
+{{- if hasKey .Values "workflows" -}}
+{{- if not (kindIs "map" .Values.workflows) -}}{{- fail "workflows must be an object" -}}{{- end -}}
+{{- $workflows = .Values.workflows -}}
+{{- end -}}
+{{- $settings := dig .name dict $workflows -}}
+{{- if not (kindIs "map" $settings) -}}{{- fail (printf "workflows.%s must be an object" .name) -}}{{- end -}}
+{{- if and (hasKey $settings "enabled") (not (kindIs "bool" (get $settings "enabled"))) -}}{{- fail (printf "workflows.%s.enabled must be boolean" .name) -}}{{- end -}}
+{{- if hasKey $settings "enabled" -}}{{ get $settings "enabled" }}{{- else -}}true{{- end -}}
+{{- end -}}
+{{- define "application-manager.workflowDependencies" -}}
+{{- $compose := eq (include "application-manager.workflow" (dict "Values" .Values "name" "composeImage")) "true" -}}
+{{- $stage := eq (include "application-manager.workflow" (dict "Values" .Values "name" "stageImage")) "true" -}}
+{{- $ostree := eq (include "application-manager.workflow" (dict "Values" .Values "name" "publishOstree")) "true" -}}
+{{- $iso := eq (include "application-manager.workflow" (dict "Values" .Values "name" "publishIso")) "true" -}}
+{{- $kickstart := eq (include "application-manager.workflow" (dict "Values" .Values "name" "serveKickstarts")) "true" -}}
+{{- include "application-manager.pipelinesValidate" (dict "Values" .Values "consumer" (or $compose $stage $ostree $iso $kickstart)) -}}
+{{- $target := mergeOverwrite ("{\"major\":8,\"architecture\":\"x86_64\",\"imageBuilder\":{\"enabled\":true,\"ostreeRef\":\"rhel/8/x86_64/edge\",\"composeTypes\":{\"container\":\"rhel-edge-container\",\"installer\":\"rhel-edge-installer\"},\"repositories\":[\"rhel-8-for-x86_64-baseos-rpms\",\"rhel-8-for-x86_64-appstream-rpms\"]},\"imageMode\":{\"enabled\":false}}" | fromJson) (deepCopy (default dict .Values.rhelTarget)) -}}
+{{- include "application-manager.rhelValidate" (dict "Values" (dict "rhelTarget" $target) "compose" $compose "iso" $iso "ostree" $ostree) -}}
+{{- $components := default dict .Values.components -}}
+{{- $endpoints := default dict .Values.publicationEndpoints -}}
+{{- $httpd := dig "httpd" dict $components -}}
+{{- include "application-manager.httpdValidate" (dict "httpd" $httpd "endpoint" (dig "httpServing" dict $endpoints) "consumer" (or $stage $ostree $iso $kickstart) "stage" $stage "content" (or $ostree $iso $kickstart)) -}}
+{{- $registry := dig "registry" dict $components -}}
+{{- include "application-manager.registryValidate" (dict "registry" $registry "consumer" $compose) -}}
+{{- if and (or $compose $stage) (eq (get $registry "mode") "disabled") -}}{{- fail "enabled image workflows require components.registry" -}}{{- end -}}
+{{- $push := ne (get $registry "mode") "byo" -}}
+{{- $image := dig "registry" "image" dict $endpoints -}}
+{{- if hasKey $image "push" -}}{{- if not (kindIs "bool" $image.push) -}}{{- fail "publicationEndpoints.registry.image.push must be boolean" -}}{{- end -}}{{- $push = $image.push -}}{{- end -}}
+{{- if and $compose (not $push) -}}{{- fail "composeImage requires publicationEndpoints.registry.image.push=true" -}}{{- end -}}
+{{- if and (or $compose $stage $ostree $iso $kickstart) (eq (dig "pipelines" "mode" "managed" $components) "disabled") -}}{{- fail "enabled workflows require components.pipelines" -}}{{- end -}}
+{{- if and (or $compose $iso) (eq (dig "imageBuilderVM" "mode" "managed" $components) "disabled") -}}{{- fail "composeImage and publishIso require components.imageBuilderVM" -}}{{- end -}}
+{{- include "application-manager.vmLifecycleValidate" (dict "Values" .Values "consumer" (or $compose $iso)) -}}
+{{- $nexus := dig "nexus" dict $components -}}
+{{- include "application-manager.nexusValidate" (dict "nexus" $nexus "consumer" false) -}}
+{{- $upload := eq (dig "mode" "managed" $nexus) "managed" -}}
+{{- if hasKey (default dict $nexus.artifacts) "upload" -}}{{- $upload = $nexus.artifacts.upload -}}{{- end -}}
+{{- include "application-manager.nexusValidate" (dict "nexus" $nexus "consumer" (and $upload (or $iso $kickstart)) "iso" $iso "kickstart" $kickstart) -}}
+{{- end -}}
+{{- define "application-manager.pipelinesValidate" -}}
+{{- $component := dig "pipelines" dict (default dict .Values.components) -}}
+{{- $mode := dig "mode" "managed" $component -}}
+{{- if not (has $mode (list "managed" "byo" "disabled")) -}}{{- fail "components.pipelines.mode must be one of: managed, byo, disabled" -}}{{- end -}}
+{{- if and (hasKey $component "connection") (not (kindIs "map" $component.connection)) -}}{{- fail "components.imageBuilderVM.connection must be an object" -}}{{- end -}}
+{{- $connection := default dict $component.connection -}}
+{{- if hasKey $connection "namespace" -}}
+{{- $namespace := $connection.namespace -}}
+{{- if not (kindIs "string" $namespace) -}}{{- fail "components.pipelines.connection.namespace must be a Kubernetes namespace string" -}}{{- end -}}
+{{- if or (gt (len $namespace) 63) (not (regexMatch "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$" $namespace)) -}}{{- fail "components.pipelines.connection.namespace must be a nonempty Kubernetes namespace" -}}{{- end -}}
+{{- end -}}
+{{- if and .consumer (eq $mode "byo") (empty (get $connection "namespace")) -}}{{- fail "components.pipelines.connection.namespace is required for BYO Pipelines" -}}{{- end -}}
+{{- end -}}
+{{- define "application-manager.vmLifecycleValidate" -}}
+{{- $component := dig "imageBuilderVM" dict (default dict .Values.components) -}}
+{{- if not (has (dig "mode" "managed" $component) (list "managed" "byo" "disabled")) -}}{{- fail "components.imageBuilderVM.mode must be one of: managed, byo, disabled" -}}{{- end -}}
+{{- if and (hasKey $component "connection") (not (kindIs "map" $component.connection)) -}}{{- fail "components.imageBuilderVM.connection must be an object" -}}{{- end -}}
+{{- $connection := default dict $component.connection -}}
+{{- range $field := list "host" "sshSecretName" -}}
+{{- if and $.consumer (eq (get $component "mode") "byo") (empty (get $connection $field)) -}}{{- fail (printf "components.imageBuilderVM.connection.%s is required for BYO Image Builder VM" $field) -}}{{- end -}}
+{{- if hasKey $connection $field -}}
+{{- $value := get $connection $field -}}
+{{- if not (kindIs "string" $value) -}}{{- fail (printf "components.imageBuilderVM.connection.%s must be a DNS name" $field) -}}{{- end -}}
+{{- $pattern := "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$" -}}
+{{- if eq $field "host" -}}{{- $pattern = "^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?(\\.[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*$" -}}{{- end -}}
+{{- if or (gt (len $value) 253) (not (regexMatch $pattern $value)) -}}{{- fail (printf "components.imageBuilderVM.connection.%s must be a DNS name" $field) -}}{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- define "application-manager.rhelValidate" -}}
+{{- $compose := .compose -}}{{- $iso := .iso -}}{{- $ostree := .ostree -}}
+{{- $target := .Values.rhelTarget | default dict -}}
+{{- $targetMajor := toString ($target.major | default "8") -}}
+{{- $architecture := $target.architecture | default "" -}}
+{{- $imageBuilder := $target.imageBuilder | default dict -}}
+{{- $composeTypes := $imageBuilder.composeTypes | default dict -}}
+{{- $imageMode := $target.imageMode | default dict -}}
+{{- if or $compose $iso -}}
+{{- if eq $targetMajor "10" -}}
+{{- fail "rhelTarget.major=10 is not supported by the current Image Builder rpm-ostree workflows; RHEL 10 requires a future image-mode/bootc implementation" -}}
+{{- end -}}
+{{- if not (has $targetMajor (list "8" "9")) -}}
+{{- fail "rhelTarget.major must be one of: 8, 9" -}}
+{{- end -}}
+{{- if empty $architecture -}}
+{{- fail "rhelTarget.architecture is required" -}}
+{{- end -}}
+{{- if $imageMode.enabled -}}
+{{- fail "rhelTarget.imageMode.enabled=true is unsupported until a future bootc/image-mode workflow is implemented" -}}
+{{- end -}}
+{{- if and (hasKey $imageBuilder "enabled") (not $imageBuilder.enabled) -}}
+{{- fail "rhelTarget.imageBuilder.enabled=false is unsupported while the current pipelines use Image Builder rpm-ostree workflows" -}}
+{{- end -}}
+{{- end -}}
+{{- if and (or $iso $ostree) (empty $imageBuilder.ostreeRef) -}}
+{{- fail "rhelTarget.imageBuilder.ostreeRef is required when Image Builder workflows are enabled" -}}
+{{- end -}}
+{{- if and (or $iso $ostree) (not (contains (printf "rhel/%s/%s/" $targetMajor $architecture) $imageBuilder.ostreeRef)) -}}
+{{- fail (printf "rhelTarget.imageBuilder.ostreeRef must match rhelTarget.major=%s and rhelTarget.architecture=%s" $targetMajor $architecture) -}}
+{{- end -}}
+{{- if and $compose (empty $composeTypes.container) -}}
+{{- fail "rhelTarget.imageBuilder.composeTypes.container is required when Image Builder workflows are enabled" -}}
+{{- end -}}
+{{- if and $iso (empty $composeTypes.installer) -}}
+{{- fail "rhelTarget.imageBuilder.composeTypes.installer is required when Image Builder workflows are enabled" -}}
+{{- end -}}
+{{- if or $compose $iso -}}
+{{- if eq (len ($imageBuilder.repositories | default list)) 0 -}}
+{{- fail "rhelTarget.imageBuilder.repositories must include at least one RHSM repository when Image Builder workflows are enabled" -}}
+{{- end -}}
+{{- range $repo := ($imageBuilder.repositories | default list) -}}
+{{- if and (ne $targetMajor "8") (contains "rhel-8-" $repo) -}}
+{{- fail (printf "rhelTarget.imageBuilder.repositories contains RHEL 8 repository %q but rhelTarget.major=%s" $repo $targetMajor) -}}
+{{- end -}}
+{{- if and (ne $targetMajor "9") (contains "rhel-9-" $repo) -}}
+{{- fail (printf "rhelTarget.imageBuilder.repositories contains RHEL 9 repository %q but rhelTarget.major=%s" $repo $targetMajor) -}}
+{{- end -}}
 {{- end -}}
 {{- end -}}
 {{- end -}}

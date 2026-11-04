@@ -83,6 +83,11 @@
                   "minLength": 1,
                   "maxLength": 253,
                   "pattern": "^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$"
+                },
+                "pullSecretName": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$",
+                  "maxLength": 253
                 }
               }
             }
@@ -167,6 +172,58 @@
               }
             }
           }
+        },
+        "httpd": {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "type": "string",
+              "enum": [
+                "managed",
+                "byo",
+                "disabled"
+              ]
+            },
+            "connection": {
+              "type": "object",
+              "properties": {
+                "routeName": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 253,
+                  "pattern": "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$"
+                },
+                "stageServiceAccountName": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 253,
+                  "pattern": "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$"
+                },
+                "routeNamespace": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 63,
+                  "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
+                },
+                "podNamespace": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 63,
+                  "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
+                },
+                "podLabelSelector": {
+                  "type": "string",
+                  "maxLength": 253,
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]*=[A-Za-z0-9][A-Za-z0-9_.-]*$"
+                },
+                "webRoot": {
+                  "type": "string",
+                  "maxLength": 4096,
+                  "pattern": "^(/[A-Za-z0-9_-]+)+$"
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -183,10 +240,216 @@
                   "type": "boolean"
                 }
               }
+            },
+            "mode": {
+              "type": "string",
+              "enum": [
+                "managed-reference",
+                "external"
+              ]
+            }
+          }
+        },
+        "httpServing": {
+          "type": "object",
+          "properties": {
+            "routeName": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 253,
+              "pattern": "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$"
+            },
+            "stageServiceAccountName": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 253,
+              "pattern": "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$"
+            },
+            "routeNamespace": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 63,
+              "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
+            },
+            "podNamespace": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 63,
+              "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?$"
+            },
+            "podLabelSelector": {
+              "type": "string",
+              "maxLength": 253,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:/-]*=[A-Za-z0-9][A-Za-z0-9_.-]*$"
+            },
+            "webRoot": {
+              "type": "string",
+              "maxLength": 4096,
+              "pattern": "^(/[A-Za-z0-9_-]+)+$"
+            },
+            "content": {
+              "type": "object",
+              "properties": {
+                "write": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "staging": {
+              "type": "object",
+              "properties": {
+                "create": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "mode": {
+              "type": "string",
+              "enum": [
+                "managed-reference"
+              ]
+            }
+          }
+        },
+        "artifactRepository": {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "type": "string",
+              "enum": [
+                "managed-reference",
+                "disabled"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "workflows": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "composeImage": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "enabled"
+          ]
+        },
+        "stageImage": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "enabled"
+          ]
+        },
+        "publishOstree": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "enabled"
+          ]
+        },
+        "publishIso": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "enabled"
+          ]
+        },
+        "serveKickstarts": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "enabled"
+          ]
+        }
+      },
+      "required": [
+        "composeImage",
+        "stageImage",
+        "publishOstree",
+        "publishIso",
+        "serveKickstarts"
+      ]
+    },
+    "rhelTarget": {
+      "type": "object",
+      "properties": {
+        "major": {
+          "type": [
+            "integer",
+            "string"
+          ]
+        },
+        "architecture": {
+          "type": "string"
+        },
+        "imageBuilder": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "ostreeRef": {
+              "type": "string"
+            },
+            "composeTypes": {
+              "type": "object",
+              "properties": {
+                "container": {
+                  "type": "string"
+                },
+                "installer": {
+                  "type": "string"
+                }
+              }
+            },
+            "repositories": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "imageMode": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
             }
           }
         }
       }
     }
-  }
+  },
+  "required": [
+    "workflows"
+  ]
 }

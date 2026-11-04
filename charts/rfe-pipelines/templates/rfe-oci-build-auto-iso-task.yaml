@@ -1,4 +1,5 @@
-{{- include "rfePipelines.httpdValidate" (dict "httpd" .Values.components.httpd "endpoint" .Values.publicationEndpoints.httpServing "consumer" true) -}}
+{{- include "rfePipelines.validate" . -}}
+{{- if eq (include "rfePipelines.workflow" (dict "Values" .Values "name" "publishIso")) "true" -}}
 {{- $httpServing := .Values.publicationEndpoints.httpServing -}}
 {{- if eq .Values.components.httpd.mode "byo" -}}{{- $httpServing = .Values.components.httpd.connection -}}{{- end -}}
 {{- $nexus := .Values.publicationEndpoints.artifactRepository.nexus -}}
@@ -77,3 +78,5 @@ spec:
       secret:
         defaultMode: 0440
         secretName: "$(params.image-builder-secret)"
+
+{{- end -}}

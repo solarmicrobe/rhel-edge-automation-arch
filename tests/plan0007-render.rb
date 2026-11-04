@@ -264,7 +264,7 @@ assert(render('quay', '--set', 'components.registry.mode=disabled').empty?, 'dis
 %w[quay rfe-pipelines application-manager].each do |chart|
   args = chart == 'application-manager' ? ['--set', 'charts.consumer.path=charts/quay'] : []
   %w[invalid true].each { |mode| render(chart, *args, '--set', "components.registry.mode=#{mode}", succeeds: false) }
-  render(chart, *args, '--set', 'components.registry.mode=byo', succeeds: false)
+  render(chart, *args, '--set', 'components.registry.mode=byo', succeeds: chart != 'rfe-pipelines')
   %w[imagePath publisherSecretName].each do |field|
     %w[42 false bad;command].each { |value| render(chart, *args, '-f', registry_byo, '--set', "components.registry.connection.#{field}=#{value}", succeeds: false) }
   end
@@ -322,7 +322,7 @@ end
   ['invalid', 'true', 'false', '0', ''].each { |mode| render(chart, '--set', "components.nexus.mode=#{mode}", succeeds: false) }
   render(chart, '--set-string', 'components.nexus.artifacts.upload=false', succeeds: false)
 end
-render('rfe-pipelines', '--set', 'components.nexus.mode=byo', succeeds: false)
+render('rfe-pipelines', '--set', 'components.nexus.mode=byo,components.nexus.artifacts.upload=true', succeeds: false)
 %w[credentialsSecretName credentialsSecretNamespace serviceName servicePort httpScheme routeName routeNamespace kickstartRepository autoIsoRepository].each do |field|
   render('rfe-pipelines', '-f', nexus_byo, '--set', "components.nexus.connection.#{field}=", succeeds: false)
 end
@@ -345,7 +345,7 @@ assert(active.include?('existing-nexus-publisher') && active.include?('nexus_rep
   child = YAML.load(app.dig('spec', 'source', 'helm', 'values'))
   assert(child.dig('components', 'nexus', 'connection', 'serviceName') == 'existing-nexus' && child['retained'], 'Nexus parent forwarding lost connection or child values')
 end
-render('application-manager', '--set', 'charts.consumer.path=charts/rfe-pipelines,charts.consumer.values.components.nexus.mode=byo', succeeds: false)
+render('application-manager', '--set', 'charts.consumer.path=charts/rfe-pipelines,charts.consumer.values.components.nexus.mode=byo,charts.consumer.values.components.nexus.artifacts.upload=true', succeeds: false)
 %w[charts/nexus charts/rfe-pipelines].each do |path|
   render('application-manager', '--set', "charts.consumer.path=#{path}")
   ['false', '0', ''].each do |mode|
@@ -383,7 +383,7 @@ httpd_byo = File.join(ROOT, 'examples/values/httpd-byo.yaml')
 end
 %w[httpd rfe-pipelines].each do |chart|
   %w[invalid true false 0].push('').each { |mode| render(chart, '--set', "components.httpd.mode=#{mode}", succeeds: false) }
-  render(chart, '--set', 'components.httpd.mode=byo', succeeds: false)
+  render(chart, '--set', 'components.httpd.mode=byo', succeeds: chart == 'httpd')
   %w[routeName routeNamespace podNamespace podLabelSelector webRoot stageServiceAccountName].each do |field|
     render(chart, '-f', httpd_byo, '--set', "components.httpd.connection.#{field}=", succeeds: false)
     render(chart, '-f', httpd_byo, '--set', "components.httpd.connection.#{field}=42", succeeds: false)
@@ -421,7 +421,7 @@ end
   %w[false 0].push('').each do |mode|
     render('application-manager', '--set', "charts.consumer.path=#{path},charts.consumer.values.components.httpd.mode=#{mode}", succeeds: false)
   end
-  render('application-manager', '--set', "charts.consumer.path=#{path},charts.consumer.values.components.httpd.mode=byo", succeeds: false)
+  render('application-manager', '--set', "charts.consumer.path=#{path},charts.consumer.values.components.httpd.mode=byo", succeeds: path == 'charts/httpd')
 end
 render('application-manager', '-f', httpd_byo, '--set', 'charts.consumer.path=charts/rfe-pipelines,publicationEndpoints.httpServing.staging.create=false', succeeds: false)
 render('application-manager', '-f', httpd_byo, '--set-string', 'charts.consumer.path=charts/rfe-pipelines,publicationEndpoints.httpServing.content.write=true', succeeds: false)
@@ -454,10 +454,12 @@ end
 %w[podNamespace podLabelSelector webRoot].each do |field|
   ['$(printf shell-injection)', 'bad;command', '`printf shell-injection`'].each do |value|
     error = render('rfe-pipelines', '--set-string', "publicationEndpoints.httpServing.#{field}=#{value}", succeeds: false)
-    assert(error.include?("publicationEndpoints.httpServing.#{field} must be a safe nonempty endpoint value"), "unsafe managed HTTPD #{field} rejected for wrong reason")
+    assert((error.include?("publicationEndpoints.httpServing.#{field} must be a safe nonempty endpoint value") || error.include?("/publicationEndpoints/httpServing/#{field}")), "unsafe managed HTTPD #{field} rejected for wrong reason")
   end
   render('rfe-pipelines', '--set', "publicationEndpoints.httpServing.#{field}=42", succeeds: false)
   render('rfe-pipelines', '--set-string', "publicationEndpoints.httpServing.#{field}=", succeeds: false)
 end
 render('rfe-pipelines', '--set', 'publicationEndpoints.httpServing.podNamespace=other-httpd,publicationEndpoints.httpServing.webRoot=/srv/legacy')
 puts "#{CHECKS.length} complete Helm render checks passed"
+
+require_relative "plan0007-workflows"
