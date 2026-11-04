@@ -590,7 +590,7 @@ only this plan. Local approval does not establish pushed integration, a PR appro
 execution, serving, permissions, storage access or staging readiness. Remote push remains blocked pending direct
 user authorization after the earlier automatic approval review rejection; no bypass was attempted.
 
-### Workflow dependencies and artifact reuse checkpoint (integration verified; independent review pending)
+### Workflow dependencies and artifact reuse checkpoint (implemented and independently reviewed)
 
 Checkpoint `5/10` adds five independent, strict boolean workflow switches, all defaulting to true:
 `workflows.composeImage.enabled`, `stageImage.enabled`, `publishOstree.enabled`, `publishIso.enabled`
@@ -717,3 +717,45 @@ broader capability-scoped RBAC and modern deployment/operator entry-point wiring
 actual permissions, guest execution, writable serving storage, publication and live Tekton behavior
 remain unverified. The modified older goal prompt and untracked remaining-goal plan stay outside
 this commit and retain their existing contents.
+
+
+#### Independent local workflow review (2026-11-03)
+
+STATUS: APPROVE. Fresh local review cycle `1`, checkpoint
+`workflows-5/integration-c334170`, reviewed immutable base
+`560277ffbbc605046c2dad3511bf62db9c8c4106` through implementation head
+`c334170f6297ede9dd3d464c49924091517dafed`. Four fresh, read-only reviewers
+(`review_workflows_resumed/acceptance`, `/correctness`, `/security`, `/verification`)
+returned PASS with no deterministic findings or decision-boundary findings. Acceptance
+covered the bounded workflow contract and independently passed all 215 focused renders
+and complete parsed managed-default comparisons. Correctness inspected dependency guards,
+precedence, supported paths and reuse; security inspected ownership, credential references
+and consumer authorization; verification audited coverage and passed both Ruby syntax checks
+and immutable-range whitespace checks. The existing 397-check suite and inventory fixtures
+retain the fresh integration evidence above rather than being redundantly rerun by each lane.
+
+An ephemeral correctness probe initially failed at result printing because Ruby JSON support
+was not loaded (`undefined method to_json`); adding `-rjson` repaired only the tool command.
+Its default empty-hash fixture then failed Helm parsing (`invalid Yaml document separator: {}`)
+and supplies no evidence. The same corrected command successfully rendered all-disabled
+output with zero resources and kickstart-only output with registry, guest and Nexus disabled.
+No repository source, test or durable fixture changed. Per the parent disposition, this
+narrow diagnostic-command repair is recorded separately from candidate remediation; failed
+probes are excluded from verification evidence. The candidate remained immutable.
+
+Review outcome is `review_complete` for checkpoint `5/10`, not whole-plan completion.
+Newly authorized candidate remediation remains `0/3`, with prospective cycles 12–14 available;
+the historical eleven-cycle overrun remains unchanged. There was no repair or fix/reverify
+cycle in this review. After cycle 14 completes the run must stop regardless of passing status.
+No push, dependency installation, cluster mutation, provisioning, paid resource or privileged
+Pipeline run occurred. Broader capability-scoped RBAC and modern operator/entrypoint wiring
+remain checkpoint 6. Private pulls, actual permissions, guest execution, writable serving
+storage, publication and live Tekton execution remain unverified.
+
+Execution accounting continues the existing cumulative clock: 4,715 seconds before pause,
+120 seconds conservative resume overhead, and time since `2026-11-04 04:59:42 UTC`.
+At `2026-11-04 05:05:09 UTC`, cumulative execution was 5,162 seconds of 21,600 seconds;
+review closeout time after that sample remains chargeable. This disposition-only commit
+records approval of the immutable implementation head above. The older goal-prompt edit
+and untracked remaining-goal prompt are preserved outside this commit. Push remains a
+separate parent-controlled gate.
