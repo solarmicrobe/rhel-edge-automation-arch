@@ -839,3 +839,81 @@ This scoped disposition commit preserves both user goal prompt files outside its
 contents. No push, cluster mutation, dependency installation, paid resource or
 privileged Pipeline execution occurred. Push remains a separate parent-controlled
 gate because the earlier automatic approval review rejected it.
+
+### Checkpoint 7 implementation and integration receipt
+
+Checkpoint `7/10` supplies `setup/values-modern.yaml`, two BYO GitOps overlays and
+`setup/values-modern-control-access.yaml`. The actual emitted workload forest is
+one nested application-manager plus managed DataSource Image Builder VM, existing-image
+HTTPD and RFE Pipelines. Virtualization, Pipelines, ODF, registry and Nexus connections
+are explicit BYO inputs. Existing Secrets are referenced; Bootstrap RHSM inputs use
+`secretProvided`. Dummy runner/HTTPD images and endpoints require operator replacement.
+GitOps sources, runtime tooling and the actual guest setup clone use the solarmicrobe
+fork at `custom`. RHEL 8 and the DataSource consumer remain explicit.
+
+Bootstrap's application-manager and argocdIntegration aliases carry the modern ownership,
+connection and workflow contract; BYO overlays update both aliases. Only managed-rfe
+renders the namespace ArgoCD, whose actual name matches its controller identity.
+BYO AppProject creation defaults false. Workload Applications own no namespace, operator,
+catalog, image producer, monitoring, permission or AppProject resources. Administrative
+resources use existing direct charts; no API or capability expansion was introduced.
+Workload Argo rules exclude RBAC and control-plane resources. The separate control
+access overlay disables AppProject creation and grants only Applications in the control
+namespace. External permission ownership suppresses all repository permission resources.
+
+Namespace plumbing covers four VM templates, two compose Tasks, actual managed inventory,
+setup Secrets and the scheduler's second VMI query. Omitted overrides retain `rfe`;
+DNS-label schemas reject shell-unsafe overrides. Nested local managers now forward
+publicationEndpoints and rhelTarget with parent precedence and foreign-chart exclusion.
+Private staging ServiceAccount and pullSecret ownership remain explicit.
+
+Repair ledger (checkpoint 7 only): `2/5` consumed. Attempt 0 stopped at Ruby 2.6's
+unsupported `YAML.load_file(..., aliases: true)` after the inherited 397 + 215 + 100
+checks passed; no repair or rerun occurred in that owner. Fresh repair 1 changed only
+the modern test YAML loaders to `YAML.safe_load(File.read(...), aliases: true)` and
+inline safe_load; its first verification stopped when empty-hash YAML serialization
+was interpreted as Helm's document separator at the baseline comparison. Fresh repair 2
+changed only the modern test serializer to `values.empty? ? "{}\n" : YAML.dump(values)`;
+its single complete verification passed. The fresh integration owner made no code,
+test or fixture repair and consumed no further repair attempt.
+
+Independent integration verification began at `2026-11-04 05:32:38 UTC` and completed
+by `2026-11-04 05:33:20 UTC`: `ruby tests/plan0007-render.rb` passed 397 complete Helm
+checks, 215 workflow/default comparisons, 100 operator/RBAC checks and 123 recursive
+modern/admin checks. The modern suite follows the actual emitted Application forest
+for all three deployment modes × managed/external permissions × default/custom namespaces,
+and renders administrative layers separately. Complete touched-chart defaults match
+immutable start `d96c26378a2221f1701136f1c87ecd0f1025097a`.
+`ruby tests/plan0007-byo-inventory.rb` passed four inventory cases, both scheduler guards,
+HTTPD query, real add_host namespace paths, ISO destination and default/custom managed
+inventory/scheduler queries. `git diff --check` passed. These are local render/fixture
+results; runtime authorization, operator execution, real image execution and cluster
+integration remain unverified.
+
+For checkpoint 8, the deterministic existing-chart render arguments are below. Select
+no mode overlay for managed-rfe, or append `-f setup/values-modern-byo-cluster-argocd.yaml`
+or `-f setup/values-modern-byo-rfe-argocd.yaml` immediately after the base values file in
+every command. Set CONTROL_NAMESPACE to the selected connection namespace (respectively
+`rfe-gitops`, `openshift-gitops`, `existing-rfe-gitops`); WORKLOAD_NAMESPACE defaults `rfe`.
+These commands document the intended initialization inputs; no cluster apply was run.
+
+```sh
+helm template rfe-bootstrap charts/bootstrap -n "$CONTROL_NAMESPACE" -f setup/values-modern.yaml
+helm template rfe-argocd charts/argocd -n "$CONTROL_NAMESPACE" -f setup/values-modern.yaml
+helm template rfe-runtime-access charts/rbac -n "$WORKLOAD_NAMESPACE" -f setup/values-modern.yaml
+helm template rfe-applications-access charts/argocd-integration -n "$CONTROL_NAMESPACE" -f setup/values-modern.yaml -f setup/values-modern-control-access.yaml --set "argocd.access.namespaceGrants.namespaces[0]=$CONTROL_NAMESPACE"
+```
+
+The direct runtime chart receives the same root values as Bootstrap and ArgoCD; the
+control access overlay is only for its separate argocd-integration render. Existing
+local chart dependencies must be available, as in the isolated render suite. Custom
+namespace changes must consistently update workload/control connections and Bootstrap
+alias values as exercised by the matrix. Checkpoint 8 owns init.sh/README integration;
+this checkpoint changes neither. Next stage is independent review, without approval,
+merge readiness or whole-plan completion claims.
+
+At `2026-11-04 05:33:20 UTC`, cumulative execution was 6,853 seconds of 21,600:
+6,017 seconds at `2026-11-04 05:19:24 UTC` + 836 elapsed seconds. Subsequent receipt
+and commit time remains chargeable. The scoped local commit excludes both user-owned
+goal files. No push, cluster mutation, dependency installation, paid resource or
+privileged Pipeline execution occurred.

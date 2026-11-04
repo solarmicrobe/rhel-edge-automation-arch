@@ -65,7 +65,7 @@
     label_selectors:
       - app=image-builder
     name: "{{ pipeline_target_host }}"
-    namespace: rfe
+    namespace: "{{ image_builder_namespace | default('rfe') }}"
     validate_certs: yes
   become: no
   delay: 10

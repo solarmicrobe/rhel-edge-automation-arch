@@ -14,7 +14,7 @@ metadata:
     {{- toYaml $.Values.imageBuilderVM.annotations | nindent 4 }}
     {{- include "kubevirtRHELAnnotation" $ | nindent 4 }}
   name: {{ $instance_name }}
-  namespace: rfe
+  namespace: {{ default "rfe" $.Values.namespaceOverride }}
   labels:
     {{- toYaml $.Values.imageBuilderVM.labels | nindent 4 }}
     {{- include "common.labels.labels" $ | nindent 4 }}

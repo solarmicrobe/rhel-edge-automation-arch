@@ -464,3 +464,4 @@ puts "#{CHECKS.length} complete Helm render checks passed"
 
 require_relative "plan0007-workflows"
 require_relative "plan0007-operators-rbac"
+require_relative "plan0007-modern-profile"

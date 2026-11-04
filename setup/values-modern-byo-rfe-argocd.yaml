@@ -1,0 +1,41 @@
+# Layer after values-modern.yaml. Existing AppProject and permissions are external by default.
+---
+deployment: &1
+  mode: byo-rfe-argocd
+permissions: &2
+  mode: auto
+components: &3
+  gitops:
+    mode: byo
+    connection:
+      namespace: existing-rfe-gitops
+      project: rfe
+      server: https://kubernetes.default.svc
+      controllerServiceAccount: existing-argocd-application-controller
+argocd: &4
+  target:
+    namespace: existing-rfe-gitops
+    project: rfe
+    server: https://kubernetes.default.svc
+  appProject:
+    create: false
+  access:
+    namespaceGrants:
+      controllerServiceAccount: existing-argocd-application-controller
+application-manager:
+  deployment: *1
+  permissions: *2
+  components: *3
+  common:
+    namespace: existing-rfe-gitops
+  charts:
+    rfe-automation:
+      destinationNamespace: existing-rfe-gitops
+      values:
+        common:
+          namespace: existing-rfe-gitops
+argocdIntegration:
+  deployment: *1
+  permissions: *2
+  components: *3
+  argocd: *4

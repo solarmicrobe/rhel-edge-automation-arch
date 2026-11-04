@@ -9,7 +9,7 @@ metadata:
   labels:
     run: redhat-image-downloader-ansible-job
   name: redhat-image-downloader-ansible-job
-  namespace: rfe
+  namespace: {{ default "rfe" $.Values.namespaceOverride }}
 spec:
   template:
     spec:

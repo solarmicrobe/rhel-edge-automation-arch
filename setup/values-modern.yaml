@@ -1,0 +1,314 @@
+# Explicit modern profile. Replace dummy images/endpoints and supply referenced Secrets.
+# Namespaces and shared operators already exist. Apply admin charts deliberately.
+---
+deployment: &1
+  mode: managed-rfe-argocd
+permissions: &2
+  mode: auto
+components: &3
+  gitops:
+    mode: managed
+    connection:
+      namespace: rfe-gitops
+      project: rfe
+      server: https://kubernetes.default.svc
+      controllerServiceAccount: rfe-argocd-argocd-application-controller
+  virtualization:
+    mode: byo
+    connection:
+      namespace: openshift-cnv
+      dataSource:
+        name: rhel8
+        namespace: openshift-virtualization-os-images
+  odf:
+    mode: byo
+    connection:
+      storageClassName: ocs-storagecluster-ceph-rbd
+      objectBucketClaimStorageClassName: openshift-storage.noobaa.io
+      bucketNamespace: rfe
+  pipelines:
+    mode: byo
+    connection:
+      namespace: openshift-pipelines
+  registry:
+    mode: byo
+    connection:
+      imagePath: registry.example.com/rfe/edge
+      publisherSecretName: existing-registry-publisher
+      pullSecretName: existing-registry-pull
+  nexus:
+    mode: byo
+    artifacts:
+      upload: false
+    connection:
+      credentialsSecretName: existing-nexus-publisher
+      credentialsSecretNamespace: rfe
+      serviceName: existing-nexus
+      servicePort: 8081
+      httpScheme: https
+      routeName: existing-nexus
+      routeNamespace: repositories
+      kickstartRepository: kickstarts
+      autoIsoRepository: auto-iso
+  imageBuilderVM:
+    mode: managed
+    connection: {}
+  httpd:
+    mode: managed
+    connection: {}
+workflows: &4
+  composeImage:
+    enabled: true
+  stageImage:
+    enabled: true
+  publishOstree:
+    enabled: true
+  publishIso:
+    enabled: true
+  serveKickstarts:
+    enabled: true
+publicationEndpoints: &5
+  registry:
+    image:
+      push: true
+  httpServing:
+    routeName: httpd
+    routeNamespace: rfe
+    podNamespace: rfe
+    podLabelSelector: deployment=httpd
+    webRoot: "/var/www/html"
+    stageServiceAccountName: oci-rfe-httpd
+    content:
+      write: true
+    staging:
+      create: true
+rhelTarget: &6
+  major: 8
+  architecture: x86_64
+  imageBuilder:
+    enabled: true
+    ostreeRef: rhel/8/x86_64/edge
+    composeTypes:
+      container: rhel-edge-container
+      installer: rhel-edge-installer
+    repositories:
+    - rhel-8-for-x86_64-baseos-rpms
+    - rhel-8-for-x86_64-appstream-rpms
+  imageMode:
+    enabled: false
+argocd: &8
+  target:
+    namespace: rfe-gitops
+    project: rfe
+    server: https://kubernetes.default.svc
+  appProject:
+    create: true
+    name: rfe
+    sourceRepos:
+    - https://github.com/solarmicrobe/rhel-edge-automation-arch.git
+    destinations:
+    - namespace: rfe
+      server: https://kubernetes.default.svc
+    - namespace: rfe-gitops
+      server: https://kubernetes.default.svc
+    clusterResourceWhitelist: []
+    clusterResourceBlacklist:
+    - group: "*"
+      kind: "*"
+  access:
+    namespaceGrants:
+      create: true
+      controllerServiceAccount: rfe-argocd-argocd-application-controller
+      namespaces:
+      - rfe
+      rules:
+      - apiGroups:
+        - ''
+        resources:
+        - configmaps
+        - secrets
+        - services
+        - persistentvolumeclaims
+        - pods
+        verbs:
+        - get
+        - list
+        - watch
+        - create
+        - update
+        - patch
+        - delete
+      - apiGroups:
+        - apps
+        resources:
+        - deployments
+        - replicasets
+        verbs:
+        - get
+        - list
+        - watch
+        - create
+        - update
+        - patch
+        - delete
+      - apiGroups:
+        - batch
+        resources:
+        - jobs
+        verbs:
+        - get
+        - list
+        - watch
+        - create
+        - update
+        - patch
+        - delete
+      - apiGroups:
+        - route.openshift.io
+        resources:
+        - routes
+        verbs:
+        - get
+        - list
+        - watch
+        - create
+        - update
+        - patch
+        - delete
+      - apiGroups:
+        - tekton.dev
+        resources:
+        - pipelines
+        - tasks
+        - pipelineruns
+        - taskruns
+        verbs:
+        - get
+        - list
+        - watch
+        - create
+        - update
+        - patch
+        - delete
+      - apiGroups:
+        - kubevirt.io
+        resources:
+        - virtualmachines
+        - virtualmachineinstances
+        verbs:
+        - get
+        - list
+        - watch
+        - create
+        - update
+        - patch
+        - delete
+      - apiGroups:
+        - cdi.kubevirt.io
+        resources:
+        - datavolumes
+        verbs:
+        - get
+        - list
+        - watch
+        - create
+        - update
+        - patch
+        - delete
+    clusterCapabilities:
+      create: false
+namespaceOverride: rfe
+ansibleRunner: &7
+  image: registry.example.com/rfe/ansible-runner:v1
+  imagePullPolicy: IfNotPresent
+gitRepository: https://github.com/solarmicrobe/rhel-edge-automation-arch.git
+gitBranch: custom
+imageBuilderVM:
+  dataVolumeSource: datasource
+  legacyPvcSource:
+    enabled: false
+buildConfig:
+  enabled: false
+image:
+  repository: registry.example.com/rfe/httpd-ostree:v1
+pipelines:
+  repos:
+    tooling:
+      repoURL: https://github.com/solarmicrobe/rhel-edge-automation-arch.git
+      targetRevision: custom
+bootstrap:
+  legacyAppProjects:
+    enabled: false
+rhsm:
+  namespace: rfe
+  portal:
+    secretProvided: true
+    secretName: redhat-portal-credentials
+  imageBuilder:
+    secretProvided: true
+    secretName: image-builder-ssh-key
+application-manager:
+  deployment: *1
+  permissions: *2
+  components: *3
+  workflows: *4
+  publicationEndpoints: *5
+  rhelTarget: *6
+  common:
+    repoURL: https://github.com/solarmicrobe/rhel-edge-automation-arch.git
+    targetRevision: custom
+    namespace: rfe-gitops
+    project: rfe
+    destinationNamespace: rfe
+    prune: true
+    selfHeal: true
+  charts:
+    rfe-automation:
+      path: charts/application-manager
+      destinationNamespace: rfe-gitops
+      values:
+        common:
+          repoURL: https://github.com/solarmicrobe/rhel-edge-automation-arch.git
+          targetRevision: custom
+          namespace: rfe-gitops
+          project: rfe
+          destinationNamespace: "{{ .Values.common.destinationNamespace }}"
+          prune: true
+          selfHeal: true
+        charts:
+          image-builder-vm:
+            path: charts/image-builder-vm
+            values:
+              namespaceOverride: "{{ .Values.common.destinationNamespace }}"
+              ansibleRunner: *7
+              gitRepository: https://github.com/solarmicrobe/rhel-edge-automation-arch.git
+              gitBranch: custom
+              imageBuilderVM:
+                dataVolumeSource: datasource
+                legacyPvcSource:
+                  enabled: false
+          httpd:
+            path: charts/httpd
+            values:
+              namespaceOverride: "{{ .Values.common.destinationNamespace }}"
+              fullnameOverride: httpd
+              buildConfig:
+                enabled: false
+              image:
+                repository: registry.example.com/rfe/httpd-ostree:v1
+          rfe-pipelines:
+            path: charts/rfe-pipelines
+            values:
+              namespaceOverride: "{{ .Values.common.destinationNamespace }}"
+              ansibleRunner: *7
+              pipelines:
+                repos:
+                  tooling:
+                    repoURL: https://github.com/solarmicrobe/rhel-edge-automation-arch.git
+                    targetRevision: custom
+argocdIntegration:
+  enabled: true
+  deployment: *1
+  permissions: *2
+  components: *3
+  argocd: *8

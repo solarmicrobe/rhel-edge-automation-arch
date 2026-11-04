@@ -91,7 +91,7 @@
               kind: Secret
               metadata:
                 name: etc-pki-entitlement
-                namespace: rfe
+                namespace: "{{ image_builder_namespace | default('rfe') }}"
               type: Opaque
           become: no
           delegate_to: localhost
@@ -110,7 +110,7 @@
               kind: Secret
               metadata:
                 name: rhsm-ca
-                namespace: rfe
+                namespace: "{{ image_builder_namespace | default('rfe') }}"
               type: Opaque
           become: no
           delegate_to: localhost
@@ -128,7 +128,7 @@
               kind: Secret
               metadata:
                 name: rhsm-conf
-                namespace: rfe
+                namespace: "{{ image_builder_namespace | default('rfe') }}"
               type: Opaque
           become: no
           delegate_to: localhost

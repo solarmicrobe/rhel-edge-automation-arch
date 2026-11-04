@@ -7,7 +7,7 @@
     kind: VirtualMachineInstance
     label_selectors:
       - app=image-builder
-    namespace: rfe
+    namespace: "{{ image_builder_namespace | default('rfe') }}"
     validate_certs: true
   delay: 10
   register: vmi_results

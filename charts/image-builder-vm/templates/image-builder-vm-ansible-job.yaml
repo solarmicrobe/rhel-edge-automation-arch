@@ -9,7 +9,7 @@ metadata:
     run: image-builder-vm-ansible-job
     {{- include "common.labels.labels" . | nindent 4 }}
   name: image-builder-vm-ansible-job
-  namespace: rfe
+  namespace: {{ default "rfe" $.Values.namespaceOverride }}
 spec:
   activeDeadlineSeconds: {{ $.Values.ansibleVM.activeDeadlineSeconds }}
   template:
@@ -40,6 +40,9 @@ spec:
               git clone -b $GIT_BRANCH $GIT_URL $GIT_DIRECTORY
               ansible-galaxy collection install -r $GIT_DIRECTORY/ansible/collections/requirements.yaml
               ansible-playbook -u cloud-user --private-key=$SSH_KEY $GIT_DIRECTORY/$ANSIBLE_PLAYBOOK \
+{{- if .Values.namespaceOverride }}
+                -e image_builder_namespace={{ .Values.namespaceOverride | quote }} \
+{{- end }}
                 -e image_builder_replicas=$IMAGE_BUILDER_REPLICAS \
                 -e image_builder_rhsm_repositories={{ .Values.rhelTarget.imageBuilder.repositories | toJson | squote }}
           volumeMounts:

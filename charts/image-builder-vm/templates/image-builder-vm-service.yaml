@@ -14,7 +14,7 @@ metadata:
     vm.kubevirt.io/name: {{ $instance_name }}
     {{- include "common.labels.labels" $ | nindent 4 }}
   name: {{ $instance_name }}
-  namespace: rfe
+  namespace: {{ default "rfe" $.Values.namespaceOverride }}
 spec:
   ports:
   - name: 22-tcp

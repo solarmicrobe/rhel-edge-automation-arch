@@ -1,0 +1,24 @@
+---
+argocd:
+  appProject:
+    create: false
+  access:
+    namespaceGrants:
+      name: rfe-applications-access
+      namespaces:
+      - rfe-gitops
+      rules:
+      - apiGroups:
+        - argoproj.io
+        resources:
+        - applications
+        verbs:
+        - get
+        - list
+        - watch
+        - create
+        - update
+        - patch
+        - delete
+    clusterCapabilities:
+      create: false

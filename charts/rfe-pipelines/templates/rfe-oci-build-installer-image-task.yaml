@@ -60,6 +60,9 @@ spec:
 {{- if eq .Values.components.imageBuilderVM.mode "byo" }}
             -e "$IMAGE_BUILDER_CONNECTION" \
 {{- end }}
+{{- if .Values.namespaceOverride }}
+            -e image_builder_namespace={{ .Values.namespaceOverride | quote }} \
+{{- end }}
             -u cloud-user \
             --private-key=/var/secrets/image-builder-ssh/ssh-privatekey \
             -e blueprint_source_dir=$(params.iso-blueprint) \

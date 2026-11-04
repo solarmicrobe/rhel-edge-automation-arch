@@ -174,7 +174,7 @@ Injects Global Values
 {{- $chartValues := deepCopy (default dict .chart.values) -}}
 {{- $path := include "application-manager.chartPath" . -}}
 {{- $repoChart := include "application-manager.chartRepoPath" . -}}
-{{- if and (not $repoChart) (has $path (list "charts/quay" "charts/rfe-pipelines" "charts/rbac")) -}}
+{{- if and (not $repoChart) (has $path (list "charts/quay" "charts/rfe-pipelines" "charts/rbac" "charts/application-manager" "charts/bootstrap")) -}}
 {{- if hasKey $.Values "publicationEndpoints" -}}
 {{- $_ := set $chartValues "publicationEndpoints" (mergeOverwrite (default dict (get $chartValues "publicationEndpoints")) (deepCopy $.Values.publicationEndpoints)) -}}
 {{- end -}}
@@ -198,7 +198,7 @@ Injects Global Values
 {{- if and (not $repoChart) (has $path (list "charts/application-manager" "charts/bootstrap" "charts/image-builder-vm" "charts/rfe-pipelines" "charts/rbac")) (hasKey $.Values "workflows") -}}
 {{- $_ := set $chartValues "workflows" (mergeOverwrite (default dict (get $chartValues "workflows")) (deepCopy $.Values.workflows)) -}}
 {{- end -}}
-{{- if and (not $repoChart) (has $path (list "charts/image-builder-vm" "charts/rfe-pipelines")) (hasKey $.Values "rhelTarget") -}}
+{{- if and (not $repoChart) (has $path (list "charts/image-builder-vm" "charts/rfe-pipelines" "charts/application-manager" "charts/bootstrap")) (hasKey $.Values "rhelTarget") -}}
 {{- $_ := set $chartValues "rhelTarget" (mergeOverwrite (default dict (get $chartValues "rhelTarget")) (deepCopy $.Values.rhelTarget)) -}}
 {{- end -}}
 {{- $operatorComponent := get (dict "openshift-gitops-operator" "gitops" "kubevirt-hyperconverged" "virtualization" "odf-operator" "odf" "openshift-pipelines-operator-rh" "pipelines" "quay-operator" "registry" "nexus-operator" "nexus") (dig "operator" "name" "" $chartValues) -}}
