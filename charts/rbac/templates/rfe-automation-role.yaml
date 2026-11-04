@@ -18,6 +18,7 @@ rules:
       - list
       - update
       - get
+{{- if eq (include "rbac.reference" .) "true" }}
   - apiGroups:
       - "*"
     resources:
@@ -45,6 +46,44 @@ rules:
     verbs:
       - update
       - create
+{{- else }}
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+      - services
+      - configmaps
+    verbs:
+      - create
+      - patch
+      - list
+      - update
+      - get
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - list
+      - get
+  - apiGroups:
+      - ""
+    resources:
+      - pods/exec
+    verbs:
+      - update
+      - create
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+    verbs:
+      - create
+      - patch
+      - list
+      - update
+      - get
+{{- end }}
   - apiGroups:
       - kubevirt.io
     resources:

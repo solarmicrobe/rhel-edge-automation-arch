@@ -463,3 +463,4 @@ render('rfe-pipelines', '--set', 'publicationEndpoints.httpServing.podNamespace=
 puts "#{CHECKS.length} complete Helm render checks passed"
 
 require_relative "plan0007-workflows"
+require_relative "plan0007-operators-rbac"

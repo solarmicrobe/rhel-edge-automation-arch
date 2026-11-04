@@ -759,3 +759,46 @@ review closeout time after that sample remains chargeable. This disposition-only
 records approval of the immutable implementation head above. The older goal-prompt edit
 and untracked remaining-goal prompt are preserved outside this commit. Push remains a
 separate parent-controlled gate.
+
+### Checkpoint 6 candidate repair 1 (verified locally; integration pending)
+
+Checkpoint `6/10` covers operator ownership forwarding and modern workload RBAC.
+Repair cycle `1/5` is consumed. The initial focused fixture failed because it disabled
+GitOps while asking application-manager to create a workload Application; that rejection
+is an existing invariant, not an implementation defect. The repaired GitOps precedence
+fixture uses the BYO deployment example, including namespace, project and server, attempts
+a managed child override, and verifies parent BYO ownership wins through both chart-path
+entry points. Rendering the forwarded child values produces no operator objects.
+Other component precedence fixtures retain active GitOps, and an explicit negative fixture
+preserves disabled-GitOps rejection of workload Applications.
+
+One verification run passed `ruby tests/plan0007-render.rb`: 397 complete Helm render
+checks, 215 workflow render checks with complete default manifest comparisons, and 100
+focused operator/RBAC render checks. `ruby tests/plan0007-byo-inventory.rb` passed four
+local inventory cases, both scheduler guards, the HTTPD pod-query fixture, both actual
+add_host namespace paths and the ISO destination. No unexpected verification failure
+occurred in repair 1. Whitespace verification is recorded in the integration handoff.
+
+At `2026-11-04 05:14:25 UTC`, cumulative execution was 5,718 seconds of 21,600:
+4,715 seconds before pause + 120 seconds resume overhead + 883 seconds since
+`2026-11-04 04:59:42 UTC`. Subsequent closeout time remains chargeable. Both user goal
+prompts remain preserved. Fresh integration-owner review and disposition are pending;
+this is not full-plan completion. No commit, push, cluster mutation or dependency
+installation occurred in this repair. Runtime permissions and operator execution remain
+unverified.
+
+### Checkpoint 6 integration verification
+
+A fresh integration-owner pass independently reran `ruby tests/plan0007-render.rb`
+(397 complete Helm checks, 215 workflow checks and parsed default comparisons,
+100 focused operator/RBAC checks), `ruby tests/plan0007-byo-inventory.rb`
+(four inventory cases, both scheduler guards, HTTPD query, both add_host namespace
+paths and ISO destination), and `git diff --check`; all passed. No additional
+repair was needed. The local integration commit excludes both user goal prompts.
+
+This checkpoint handles the six known operator identities through direct operator
+renders and application-manager actual/common chart paths, parent ownership precedence,
+selective forwarding, and modern workload RBAC with historical reference-mode parity.
+Broader administrative capability profiles and initialization entry points remain
+checkpoints 7–8. Runtime authorization and operator execution require cluster evidence;
+this local checkpoint is neither review approval nor full-plan completion.

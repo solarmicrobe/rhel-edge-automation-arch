@@ -9,9 +9,9 @@
 {{- if and (not $chart.disabled) (not $repoChart) (eq $path "charts/rfe-pipelines") -}}
 {{- $effective := mergeOverwrite (deepCopy (default dict $chart.values)) (deepCopy (omit $.Values "charts" "common" "global" "argocd")) -}}
 {{- include "application-manager.workflowDependencies" (dict "Values" $effective) -}}
-{{- else if and (not $chart.disabled) (not $repoChart) (eq $path "charts/operator") (eq (dig "operator" "name" "" (default dict $chart.values)) "openshift-pipelines-operator-rh") -}}
+{{- else if and (not $chart.disabled) (not $repoChart) (eq $path "charts/operator")  -}}
 {{- $effective := mergeOverwrite (deepCopy (default dict $chart.values)) (deepCopy (omit $.Values "charts" "common" "global" "argocd")) -}}
-{{- include "application-manager.pipelinesValidate" (dict "Values" $effective "consumer" true) -}}
+{{- include "application-manager.operatorValidate" (dict "Values" $effective "operatorName" (dig "operator" "name" "" (default dict $chart.values))) -}}
 {{- else if and (not $chart.disabled) (not $repoChart) (eq $path "charts/nexus") -}}
 {{- $nexus := mergeOverwrite (deepCopy (dig "components" "nexus" dict (default dict $chart.values))) (deepCopy (dig "nexus" dict (default dict $.Values.components))) -}}
 {{- include "application-manager.nexusValidate" (dict "nexus" $nexus "consumer" false) -}}
@@ -201,12 +201,12 @@ Injects Global Values
 {{- if and (not $repoChart) (has $path (list "charts/image-builder-vm" "charts/rfe-pipelines")) (hasKey $.Values "rhelTarget") -}}
 {{- $_ := set $chartValues "rhelTarget" (mergeOverwrite (default dict (get $chartValues "rhelTarget")) (deepCopy $.Values.rhelTarget)) -}}
 {{- end -}}
-{{- $pipelinesOperator := and (not $repoChart) (eq $path "charts/operator") (eq (dig "operator" "name" "" $chartValues) "openshift-pipelines-operator-rh") -}}
-{{- if $pipelinesOperator -}}
-{{- $pipelines := dig "pipelines" dict (default dict $.Values.components) -}}
-{{- if $pipelines -}}
+{{- $operatorComponent := get (dict "openshift-gitops-operator" "gitops" "kubevirt-hyperconverged" "virtualization" "odf-operator" "odf" "openshift-pipelines-operator-rh" "pipelines" "quay-operator" "registry" "nexus-operator" "nexus") (dig "operator" "name" "" $chartValues) -}}
+{{- if and (not $repoChart) (eq $path "charts/operator") $operatorComponent -}}
+{{- $component := dig $operatorComponent dict (default dict $.Values.components) -}}
+{{- if $component -}}
 {{- $components := default dict (get $chartValues "components") -}}
-{{- $_ := set $components "pipelines" (mergeOverwrite (default dict (get $components "pipelines")) (deepCopy $pipelines)) -}}
+{{- $_ := set $components $operatorComponent (mergeOverwrite (default dict (get $components $operatorComponent)) (deepCopy $component)) -}}
 {{- $_ := set $chartValues "components" $components -}}
 {{- end -}}
 {{- end -}}
@@ -407,5 +407,14 @@ Injects Global Values
 {{- fail (printf "rhelTarget.imageBuilder.repositories contains RHEL 9 repository %q but rhelTarget.major=%s" $repo $targetMajor) -}}
 {{- end -}}
 {{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{- define "application-manager.operatorValidate" -}}
+{{- $name := get (dict "openshift-gitops-operator" "gitops" "kubevirt-hyperconverged" "virtualization" "odf-operator" "odf" "openshift-pipelines-operator-rh" "pipelines" "quay-operator" "registry" "nexus-operator" "nexus") .operatorName -}}
+{{- if $name -}}
+{{- $component := dig $name dict (default dict .Values.components) -}}
+{{- if not (has (dig "mode" "managed" $component) (list "managed" "byo" "disabled")) -}}{{- fail (printf "components.%s.mode must be one of: managed, byo, disabled" $name) -}}{{- end -}}
+{{- if eq $name "pipelines" -}}{{- include "application-manager.pipelinesValidate" (dict "Values" .Values "consumer" true) -}}{{- end -}}
 {{- end -}}
 {{- end -}}

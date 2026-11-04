@@ -402,6 +402,20 @@
           }
         }
       }
+    },
+    "deployment": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": [
+            "managed-rfe-argocd",
+            "byo-cluster-argocd",
+            "byo-rfe-argocd",
+            "reference-full-stack"
+          ]
+        }
+      }
     }
   },
   "required": [

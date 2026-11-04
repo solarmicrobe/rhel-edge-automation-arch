@@ -28,6 +28,71 @@
               }
             }
           }
+        },
+        "gitops": {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "type": "string",
+              "enum": [
+                "managed",
+                "byo",
+                "disabled"
+              ]
+            }
+          }
+        },
+        "virtualization": {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "type": "string",
+              "enum": [
+                "managed",
+                "byo",
+                "disabled"
+              ]
+            }
+          }
+        },
+        "odf": {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "type": "string",
+              "enum": [
+                "managed",
+                "byo",
+                "disabled"
+              ]
+            }
+          }
+        },
+        "registry": {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "type": "string",
+              "enum": [
+                "managed",
+                "byo",
+                "disabled"
+              ]
+            }
+          }
+        },
+        "nexus": {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "type": "string",
+              "enum": [
+                "managed",
+                "byo",
+                "disabled"
+              ]
+            }
+          }
         }
       }
     }

@@ -195,7 +195,7 @@ Dir.mktmpdir('workflow-baseline-') do |dir|
     File.binwrite(File.join(dir, path), content)
   end
   %w[rfe-pipelines rbac quay nexus httpd image-builder-vm].each do |chart|
-    workflow_assert(workflow_render(chart, chart_root: staged) == workflow_render(chart), "complete managed #{chart} default manifests changed")
+    workflow_assert(workflow_render(chart, chart_root: staged) == workflow_render(chart, chart == 'rbac' ? { 'deployment' => { 'mode' => 'reference-full-stack' } } : {}), "complete managed #{chart} default manifests changed")
   end
   %w[charts/rfe-pipelines charts/rbac charts/quay charts/nexus charts/httpd].each do |path|
     values = { 'charts' => { 'consumer' => { 'path' => path } } }

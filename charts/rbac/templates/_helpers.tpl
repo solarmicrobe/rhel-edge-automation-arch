@@ -17,6 +17,8 @@
 {{- $active -}}
 {{- end -}}
 {{- define "rbac.owned" -}}
+{{- $deployment := dig "mode" "managed-rfe-argocd" (default dict .Values.deployment) -}}
+{{- if not (has $deployment (list "managed-rfe-argocd" "byo-cluster-argocd" "byo-rfe-argocd" "reference-full-stack")) -}}{{- fail "deployment.mode must be a supported deployment mode" -}}{{- end -}}
 {{- $mode := dig "mode" "auto" (default dict .Values.permissions) -}}
 {{- if not (has $mode (list "auto" "managed" "external")) -}}{{- fail "permissions.mode must be auto, managed or external" -}}{{- end -}}
 {{- if eq $mode "auto" -}}{{- $mode = ternary "external" "managed" (has (dig "mode" "managed-rfe-argocd" (default dict .Values.deployment)) (list "byo-cluster-argocd" "byo-rfe-argocd")) -}}{{- end -}}
@@ -40,4 +42,8 @@
 {{- if and (not $secret) (ne (get $registry "mode") "byo") -}}{{- $secret = dig "registry" "publisherSecretName" "publisher" (default dict .Values.publicationEndpoints) -}}{{- end -}}
 {{- if and $secret (or (not (kindIs "string" $secret)) (gt (len $secret) 253) (not (regexMatch "^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$" $secret))) -}}{{- fail "registry pull secret must be a Kubernetes DNS name" -}}{{- end -}}
 {{- $secret -}}
+{{- end -}}
+
+{{- define "rbac.reference" -}}
+{{- eq (dig "mode" "managed-rfe-argocd" (default dict .Values.deployment)) "reference-full-stack" -}}
 {{- end -}}
