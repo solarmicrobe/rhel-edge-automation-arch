@@ -6,8 +6,9 @@ GitOps/permission/ODF checkpoint implemented and reviewed on the `custom` branch
 connection and guest checkpoints below extend lifecycle ownership to CNV platform objects and retained VM wiring.
 The Pipelines platform, registry, Nexus and HTTPD checkpoints are implemented and independently reviewed.
 Workflow dependency validation and artifact reuse are implemented through checkpoint 6. Operator entry-point
-wiring is locally implemented and independently integrated in checkpoint 8 below; independent review
-remains pending. Remote and runtime behavior remain unverified.
+wiring is locally implemented, independently integrated and reviewed in checkpoint 8 below.
+The remaining-scope acceptance audit is locally closed after CP8-C2 repair 6/6 and review cycle 3.
+Publication and remote revision verification remain outstanding; runtime behavior remains unverified.
 
 Checkpoint `values-doc-examples` locks the values API names and semantics below. The first implementation checkpoint
 wires those names only where needed to prove GitOps permission ownership and ODF lifecycle behavior before broader
@@ -1408,3 +1409,44 @@ fresh independent review. Publishing remains blocked by the earlier automatic
 approval review rejection; no retry is authorized here. Runtime reconciliation,
 authorization, Secrets, images and guest execution remain unverified. This is
 implementation evidence, not review approval or whole-goal completion.
+
+### Checkpoint 8 independent review cycle 3 — local approval
+
+STATUS: APPROVE (local review evidence only).
+
+Four fresh independent acceptance, correctness, security and verification lanes
+reviewed the whole checkpoint-8 range from immutable base
+`0db266208341e0d196f92fbe229a7773735d55a9` to source head
+`84dc0464dac63839bd0778bf1ebfa1cf05b76948` on `custom`. All four returned PASS
+with no deterministic findings or decision-boundary findings. HEAD remained
+unchanged through all lane receipts. The source-focused lanes inspected the
+complete entry-point contract, ownership propagation and recursive forest,
+reference identity and operator watch namespace, administrative ordering,
+bounded controller readiness, safe YAML/argv handling and fresh local staging.
+
+CP8-C2, the sole implementation gap from the whole-requirement audit, is
+independently closed: every rendered document is checked before Application
+filtering and recursion. The acceptance lane reran the exact recorded nested
+overlay in both BYO modes through render and operational paths; all four
+rejected protected target Namespace desired state before any stubbed API call.
+The verification lane passed 66 isolated initialization checks once, including
+24 recursive ownership rejects and two allowed workload Namespace forests,
+plus Ruby/Bash syntax and immutable-range whitespace checks. Its real Helm
+renders used a nondelegating kubectl stub, asserted dummy KUBECONFIG and PATH,
+and made no real API call. Prior 397 + 215 + 100 + 123 render checks and BYO
+inventory evidence were consumed without duplicating broad suites.
+
+This closes local implementation and source-review coverage for the accepted
+remaining scope; it does not establish whole-goal completion or a published
+source-control review. At `2026-11-08 22:19:44 UTC`, current-window usage was
+2,207 of 10,800 seconds (600 previously charged plus resumed elapsed time).
+Historical 34,705-second usage remains unchanged. Checkpoints remain 8/10 and
+checkpoint-8 repairs remain 6/6; no seventh repair was performed or authorized.
+Only this Plan disposition follows the reviewed source revision. Both user
+goal files remain preserved and excluded. No API call, install, deployment,
+privileged Pipeline, paid resource or push occurred during this review.
+
+Publication remains blocked by the earlier automatic approval review rejection;
+direct user publication authorization and verified remote revision are still
+required. Live reconciliation, authorization, Secrets, images and guest
+execution remain unverified. No whole-goal completion is claimed.
