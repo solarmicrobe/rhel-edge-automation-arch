@@ -26,6 +26,7 @@ Dir.mktmpdir('rfe-init-tests-') do |dir|
     #!/usr/bin/ruby
     require 'json'
     require 'yaml'
+    raise 'dummy kubeconfig missing' unless ENV.fetch('KUBECONFIG').end_with?('/dummy-kubeconfig') && File.read(ENV.fetch('KUBECONFIG')).include?('clusters: []')
     record = ['kubectl', *ARGV]
     record << YAML.load_stream(File.read(ARGV[ARGV.index('-f') + 1])).compact if ARGV.include?('-f')
     File.open(ENV.fetch('CALL_LOG'), 'a') { |f| f.puts JSON.generate(record) }
@@ -126,6 +127,42 @@ Dir.mktmpdir('rfe-init-tests-') do |dir|
   end
   _, calls, = invoke.call(['--mode','byo-rfe-argocd','--target-namespace','shared','--workload-namespace','shared'])
   raise 'BYO same namespace mutation' if calls_for.call(calls).select { |c| c[1] == 'apply' }.flat_map(&:last).any? { |d| d['kind'] == 'Namespace' }
+  # The complete rendered forest must preserve the existing BYO target Namespace.
+  # Exercise direct children, the original nested-manager overlay, and another manager level.
+  namespace_chart = lambda do |name|
+    {'path'=>'charts/namespaces', 'values'=>{'namespaces'=>[{'name'=>name}]}}
+  end
+  overlay_for = lambda do |name, depth|
+    chart = namespace_chart.call(name)
+    (depth - 1).times do
+      chart = {'path'=>'charts/application-manager', 'values'=>{'charts'=>{'nested-namespace'=>chart}}}
+    end
+    {'application-manager'=>{'charts'=>{'target-namespace'=>chart}}}
+  end
+  %w[byo-rfe-argocd byo-cluster-argocd].each do |mode|
+    %w[review-shared review-workload].each do |workload|
+      (1..3).each do |depth|
+        config = File.join(dir, 'namespace-ownership.yaml')
+        overlay = overlay_for.call('review-shared', depth)
+        if depth == 2
+          # Exact CP8-C2 reproducer: append beneath the existing rfe-automation manager.
+          overlay = {'application-manager'=>{'charts'=>{'rfe-automation'=>{'values'=>{'charts'=>{'target-namespace'=>namespace_chart.call('review-shared')}}}}}}
+        end
+        File.write(config, YAML.dump(overlay))
+        [[], ['--render']].each do |render_args|
+          _, calls, err = invoke.call(['--mode',mode,'--target-namespace','review-shared','--workload-namespace',workload,'--values',config] + render_args, false)
+          raise 'protected descendant Namespace diagnostic missing' unless err.include?('BYO preflight must not mutate target Namespace')
+          raise 'protected descendant Namespace reached API' unless calls_for.call(calls).empty?
+        end
+      end
+    end
+    # Workload and other nonprotected Namespace creation remains supported.
+    config = File.join(dir, 'allowed-namespace.yaml')
+    File.write(config, YAML.dump(overlay_for.call('review-workload', 3)))
+    _, calls, = invoke.call(['--mode',mode,'--target-namespace','review-control','--workload-namespace','review-workload','--values',config])
+    raise 'allowed Namespace forest was not rendered' unless calls.any? { |c| c[0,2] == ['helm','template'] && c.include?('nested-namespace') }
+    raise 'allowed Namespace prevented Applications' unless calls_for.call(calls).any? { |c| c[1] == 'apply' && c.last.any? { |d| d['kind'] == 'Application' } }
+  end
   [['--wat'],['--values'],['--mode','invalid'],['--timeout','0s'],['--target-namespace','bad;name'],['--workload-namespace','Upper'],['--mode','byo-rfe-argocd','--mode','managed-rfe-argocd']].each do |args|
     _, calls, = invoke.call(args, false)
     raise 'invalid arguments reached cluster' unless calls_for.call(calls).empty?

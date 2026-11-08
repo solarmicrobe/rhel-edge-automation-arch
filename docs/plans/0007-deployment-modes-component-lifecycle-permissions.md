@@ -1235,3 +1235,176 @@ installation, paid operation or privileged Pipeline execution occurred.
 Runtime reconciliation, remote state, authorization, images, Secrets and guests
 remain unverified. This implementation checkpoint advances to independent
 review; it does not claim approval or whole-plan completion.
+
+### Execution-limit stop and resumable handoff (2026-11-04)
+
+Execution stopped before the second independent review. The clock tool returned
+`2026-11-04 13:17:32 UTC`; using the retained accounting basis of 4,715 prior
+seconds plus 120 resume-setup seconds plus elapsed time since
+`2026-11-04 04:59:42 UTC` gives 34,705 seconds against the 21,600-second limit.
+The intervening time remains charged; no suspension or new six-hour allowance
+is inferred. The preceding governor receipt observed 12,833 seconds at
+`07:13:00 UTC`. The later clock observation exceeds the approved limit, so no
+further implementation, tests, review dispatch or publication was performed.
+
+Verified local HEAD is `6844bd58aec95e017b72dd6d39dbf941c3ead5e1` on `custom`.
+Checkpoint 8 uses 5/5 repair cycles; implementation checkpoints consumed are
+8/10. The user's three additional checkpoint-5 attempts remain unused (0/3);
+they do not extend checkpoint 8's repair cap or the execution-time limit.
+The final repair and fresh integration passed 40 entry-point checks; the
+unchanged repair receipt also records 397 + 215 + 100 + 123 render checks,
+inventory, syntax and whitespace checks. This is verification evidence, not
+fresh source-review approval. The first review's A1/D1 corrections still need
+fresh independent review against the repaired revision.
+
+Resume only with renewed execution-time authorization. Next: fresh independent
+review of checkpoint 8 against base
+`0db266208341e0d196f92fbe229a7773735d55a9`, then a full accepted-requirement audit
+of Plan 0007. Any new checkpoint-8 repair needs explicit additional authorization;
+do not reclassify it to bypass the exhausted cap. No whole-goal completion is
+claimed. Live cluster reconciliation, images, guests, Secrets and authorization
+remain unverified.
+
+Publishing remains blocked by the earlier automatic approval review rejection:
+repository plan text was not accepted as trusted user permission for pushing to
+`git@github.com:solarmicrobe/rhel-edge-automation-arch.git`, `refs/heads/custom`.
+Direct user publication authorization is still needed before any push retry.
+Neither preserved user goal file was edited or staged. This stop receipt is left
+as an uncommitted plan-only handoff; no additional commit or push was attempted.
+
+### Execution-time amendment and review resumption (2026-11-05)
+
+In response to the request for additional execution time, the user authorized
+“50% additional.” This adds a prospective three-hour execution window, 50% of
+the original six hours, beginning at the first resumed clock observation
+`2026-11-05 21:22:55 UTC` and ending `2026-11-06 00:22:55 UTC`.
+The historical 34,705-second accounting and earlier overrun remain recorded;
+the amendment does not rewrite them. The stopped interval between sessions is
+not charged against the new window. Checkpoint 8 remains at repair 5/5, with
+no additional repair authorization. Publication remains blocked as recorded
+above. Resume with fresh independent review, then the full requirement audit.
+
+### Checkpoint 8 independent review cycle 2 — changes required
+
+Four fresh independent lanes reviewed immutable `0db2662..6844bd5`.
+Independent verification passed 40 focused checks plus Ruby/Bash syntax and
+whitespace checks; prior broad render/inventory evidence was consumed without
+duplication. A1's historical reference identity and D1's custom operator watch
+namespace corrections were independently confirmed.
+
+Review requests changes for deterministic P1 finding `CP8-C2`: recursive
+preflight accepts a supported `charts/namespaces` Application descendant
+targeting the BYO-owned control Namespace when target and workload namespaces
+are equal. `setup/init.rb` retains only Applications from descendant documents,
+while its Namespace protection examines direct Bootstrap documents only.
+Applying the accepted root Application allows an authorized existing ArgoCD
+controller to reconcile the descendant Namespace and its labels. Actual Helm
+rendering confirmed acceptance; no live reconciliation or API call was made.
+
+The reproducing values overlay is:
+
+```yaml
+application-manager:
+  charts:
+    rfe-automation:
+      values:
+        charts:
+          target-namespace:
+            path: charts/namespaces
+            values:
+              namespaces:
+                - name: review-shared
+```
+
+Use `--mode byo-cluster-argocd --target-namespace review-shared
+--workload-namespace review-shared --render` with this overlay. Render succeeds
+despite the protected Namespace appearing in descendant desired state.
+No source/test edit, commit or push followed review. Repairs remain exhausted
+at 5/5; further implementation requires additional remediation authorization.
+Whole-plan audit may continue read-only under the renewed time window.
+At `2026-11-05 21:28:10 UTC`, that window used 315 of 10,800 seconds.
+Publication remains blocked; whole-goal completion is not established.
+
+### Whole-requirement acceptance audit — one known implementation blocker
+
+A fresh read-only acceptance audit compared the remaining accepted scope bound
+at `73807b9` with unchanged local HEAD
+`6844bd58aec95e017b72dd6d39dbf941c3ead5e1`. It inspected actual lifecycle
+guards, workflow validation and authorization, Application Manager forwarding,
+operator identity mapping, runtime RBAC, modern values and recursive
+initialization, together with the recorded verification and independent review
+receipts. It identified no additional concrete missing accepted behavior.
+
+Locally implemented coverage includes Pipelines, registry/Quay, Nexus and HTTPD
+managed/BYO/disabled ownership; explicit connections and object-specific
+publication authorization; five workflow opt-outs and consumer-specific
+dependency validation; supported image/artifact reuse; external permission
+ownership and private staging credentials; six operator identities; modern
+least-privilege versus explicit reference permissions; modern profiles and
+separate administrative initialization. Preservation constraints for GitOps,
+ODF, Virtualization and the retained DataSource-backed VM remain satisfied by
+the inspected source and recorded render/default/inventory evidence.
+
+The audit independently supports P1 `CP8-C2` as the remaining implementation
+gap: protected BYO Namespace validation must inspect the complete recursively
+rendered forest before any API call, rather than only direct Bootstrap
+documents. The supported extra-chart reproducer above requires regression
+coverage. Forty focused checks currently pass despite that uncovered case;
+they do not establish ownership correctness for the reproducer. The audit
+consumed 397 + 215 + 100 + 123 prior checks and inventory evidence without
+repeating broad suites, and independently passed `git diff --check`.
+
+Next action is operator authorization for a bounded additional checkpoint-8
+repair, then independent verification and fresh review. No source repair is
+authorized by the time-only extension. Checkpoint 8 remains at 5/5 repairs;
+8/10 implementation checkpoints are consumed. Publishing still requires direct
+authorization after the prior automatic approval rejection, followed by remote
+revision verification. Runtime reconciliation, authorization, images, Secrets
+and guest execution remain unverified. No whole-goal completion is claimed.
+The audit made no edits, API calls, installs, commits or pushes; these root
+handoff notes remain uncommitted and both user goal files remain preserved.
+
+### Checkpoint 8 CP8-C2 authorized repair 6/6 — implementation verification
+
+The user explicitly answered “Authorized” to one additional bounded CP8-C2
+repair cycle, verification, and fresh review. This amends checkpoint 8's repair
+cap from 5/5 to 6/6 for this finding only; no seventh repair is authorized.
+Checkpoint consumption remains 8/10. The prospective 10,800-second window
+retains 600 previously charged seconds plus elapsed time from the resumed
+observation `2026-11-08 21:52:57 UTC`, ending `2026-11-09 00:42:57 UTC`.
+Historical usage of 34,705 seconds remains recorded. At the verification
+observation `2026-11-08 21:57:47 UTC`, current-window consumption was 890 of
+10,800 seconds. The first unexpected postrepair verification failure requires
+an immediate stop before another repair or rerun; none occurred in this unit.
+
+Before editing, a real Helm render reproduced the exact recorded CP8-C2 overlay:
+BYO cluster ArgoCD with target and workload `review-shared` incorrectly exited
+successfully. The coherent repair validates Namespace documents in every direct
+administrative phase and every recursively rendered descendant before any API
+call. The protected name is the BYO control target regardless of workload name
+or chart identity. Existing local-source boundaries, recursive cycle guards,
+workload Namespace creation, administrative RBAC and managed/reference behavior
+remain intact. No chart or profile source changed.
+
+Verification passed once: 66 isolated initialization checks (40 existing plus
+24 negative ownership cases and two allowed workload Namespace forests), Ruby
+syntax for adapter/tests, Bash wrapper syntax, the complete render suites
+(397 + 215 + 100 + 123 checks), BYO inventory checks, and whitespace validation.
+Negative cases cover both BYO modes, equal/different target and workload,
+direct Application children, the exact recorded overlay, another nested manager
+level, render-only and operational entry paths; all reject before the first
+stubbed API call. Positive cases retain nonprotected workload Namespace desired
+state. Real Helm renders use fresh declared local chart copies. The kubectl
+stub never delegates and asserts its dummy kubeconfig; no real API, install,
+privileged Pipeline, paid resource, commit or push was used by the implementer.
+
+Candidate source SHA-256: `setup/init.rb`
+`25b471628fcabfb3d93691606ba6c41991351c14d733e69b2d9fecf023025f8b`;
+`tests/plan0007-init.rb`
+`b657b7ee264fd665f7b39133fc2ecea98ffb778e12d63b4ae7c341841f046180`.
+Both user goal files retain their recorded hashes. Next is fresh integration
+verification of the immutable candidate and an authorized local commit, then
+fresh independent review. Publishing remains blocked by the earlier automatic
+approval review rejection; no retry is authorized here. Runtime reconciliation,
+authorization, Secrets, images and guest execution remain unverified. This is
+implementation evidence, not review approval or whole-goal completion.

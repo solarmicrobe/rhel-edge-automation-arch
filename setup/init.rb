@@ -76,8 +76,11 @@ def render(chart, values, namespace, release, dir, staged, extra = [])
 end
 
 # Follow emitted Applications, including nested managers, using the values ArgoCD receives.
-def preflight_forest(apps, dir, staged, trail = [])
-  apps.each do |app|
+def preflight_forest(docs, dir, staged, protected_namespace, trail = [])
+  if protected_namespace && docs.any? { |d| d['kind'] == 'Namespace' && d.dig('metadata', 'name') == protected_namespace }
+    raise 'BYO preflight must not mutate target Namespace'
+  end
+  docs.select { |d| d['kind'] == 'Application' }.each do |app|
     source = app.fetch('spec').fetch('source')
     path = source['path']
     raise 'offline preflight requires local charts/* Application sources' unless !source['chart'] && path.is_a?(String) && path.start_with?('charts/')
@@ -95,7 +98,7 @@ def preflight_forest(apps, dir, staged, trail = [])
     values = merge(values, helm['valuesObject']) if helm['valuesObject']
     extra = (helm['parameters'] || []).flat_map { |p| [p['forceString'] ? '--set-string' : '--set', "#{p.fetch('name')}=#{p.fetch('value')}"] }
     docs = render(path.delete_prefix('charts/'), values, app.dig('spec', 'destination', 'namespace'), app.dig('metadata', 'name'), dir, staged, extra)
-    preflight_forest(docs.select { |d| d['kind'] == 'Application' }, dir, staged, trail + [identity])
+    preflight_forest(docs, dir, staged, protected_namespace, trail + [identity])
   end
 end
 
@@ -240,11 +243,11 @@ begin
     end
     boot = render('bootstrap', values, control, 'rfe-bootstrap', dir, staged)
     apps, admin = boot.partition { |d| d['kind'] == 'Application' }
-    # BYO target namespaces belong to their existing owner, including target == workload.
-    raise 'BYO Bootstrap must not mutate target Namespace' if byo && admin.any? { |d| d['kind'] == 'Namespace' && d.dig('metadata', 'name') == control }
     phases << ['bootstrap-admin', admin]
     phases << ['workload-applications', apps]
-    preflight_forest(apps, dir, staged)
+    # Inspect all direct and descendant desired state before any API call.
+    # BYO target ownership holds even when target and workload are the same namespace.
+    preflight_forest(phases.flat_map(&:last), dir, staged, byo ? control : nil)
     if options[:render]
       phases.each do |name, docs|
         puts "# phase: #{name}"
