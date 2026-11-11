@@ -8,7 +8,9 @@ The Pipelines platform, registry, Nexus and HTTPD checkpoints are implemented an
 Workflow dependency validation and artifact reuse are implemented through checkpoint 6. Operator entry-point
 wiring is locally implemented, independently integrated and reviewed in checkpoint 8 below.
 The remaining-scope acceptance audit is locally closed after CP8-C2 repair 6/6 and review cycle 3.
-Publication and remote revision verification remain outstanding; runtime behavior remains unverified.
+The accepted Plan 0007 scope is complete: local implementation, render verification, independent review,
+and authorized publication are complete. Remote `custom` publication was verified on 2026-11-11.
+Live runtime behavior remains unverified and is a separate follow-up outside this accepted local scope.
 
 Checkpoint `values-doc-examples` locks the values API names and semantics below. The first implementation checkpoint
 wires those names only where needed to prove GitOps permission ownership and ODF lifecycle behavior before broader
@@ -1450,3 +1452,71 @@ Publication remains blocked by the earlier automatic approval review rejection;
 direct user publication authorization and verified remote revision are still
 required. Live reconciliation, authorization, Secrets, images and guest
 execution remain unverified. No whole-goal completion is claimed.
+
+
+### Authorized publication and full delivery closeout (2026-11-11)
+
+STATUS: COMPLETE for the accepted Plan 0007 local implementation, render,
+review and publication scope. This disposition supersedes the historical
+publication-blocked status without changing any earlier receipt or overrun.
+The user directly authorized publication of the reviewed `custom` branch and
+remote verification. Normal approved escalation then allowed the fast-forward
+push; the earlier automatic approval publication blocker is resolved.
+
+The repository is the source-review control plane and this Plan is the durable
+delivery owner. No PR, delivery ticket, workboard, agent-control policy or
+registered evaluation suite is configured for this closeout; no external owner
+transition, PR approval or merge is invented. Integration is the authorized
+fast-forward publication to
+`git@github.com:solarmicrobe/rhel-edge-automation-arch.git`,
+`refs/heads/custom`.
+
+Publication evidence:
+
+- Previously verified remote: `73807b99a20e798fecae7279e05e0836459151ce`.
+- Approved source: `84dc0464dac63839bd0778bf1ebfa1cf05b76948`.
+- Published local revision: `8a6ac25be7de9bb1132997bdf2f752e874643da3`,
+  containing only the Plan review disposition after the approved source.
+- The old remote was verified as an ancestor; the explicit exact-SHA,
+  non-force push exited zero. At `2026-11-11 06:08:01 UTC`, remote
+  `refs/heads/custom` equaled that local revision. Closeout independently
+  fetched the same remote SHA again before this administrative receipt.
+- This final receipt changes only this Plan. Its commit is to be published by
+  another explicit exact-SHA, non-force fast-forward from the verified
+  `8a6ac25` remote, then checked with `git ls-remote` against local HEAD.
+  That final equality is the terminal verification required before returning
+  the completed closeout handoff.
+
+Full coordination handoff: all four fresh review lanes passed the complete
+checkpoint-8 range `0db266208341e0d196f92fbe229a7773735d55a9` through
+`84dc0464dac63839bd0778bf1ebfa1cf05b76948`. The final whole-requirement audit
+found no other accepted-scope gap after CP8-C2. CP8-C2 was independently closed
+with four actual Helm counterexample cases rejecting before any stubbed API
+call. The 66 focused checks passed in implementation, integration and review;
+835 render checks, BYO inventory, syntax and whitespace evidence passed as
+recorded above. No additional source change or test rerun was required for this
+administrative closeout. The approved source remains unchanged.
+
+Checkpoints remain 8/10 and checkpoint-8 repairs remain 6/6. No further repair
+is authorized. Historical 34,705-second accounting and earlier overruns are
+preserved. The renewed window carries 2,400 charged seconds plus elapsed time
+from `2026-11-11 06:06:32 UTC`, with a 10,800-second cap and deadline
+`2026-11-11 08:26:32 UTC`. At `2026-11-11 06:09:42 UTC`, usage was 2,590 of
+10,800 seconds. The stopped interval is not charged and these figures do not
+rewrite prior receipts.
+
+Both user goal files remain excluded from all closeout commits:
+`goal-prompt-deployment-modes-component-lifecycle-permissions.md` SHA-256
+`9daf618fa3ff195958c99a7db542dd15b4e72e49c81c9e84ed67885165ac0a28`;
+`goal-plan-0007-remaining.md` SHA-256
+`88f1327eec01c3bce87808c016d26bd15f7c38dd19363460125f2f508bfbc18a`.
+They are the only remaining user worktree changes after the receipt commit.
+
+Live cluster reconciliation, authorization, Secret availability, image
+availability and guest execution remain unverified. Runtime validation is an
+out-of-scope follow-up requiring its own environment and operational authority;
+this closeout makes no claim that a real cluster deployment has completed.
+No real API call, install, deployment, privileged Pipeline or paid-resource
+operation occurred in this closeout. Next action after final remote equality
+is the root governor's terminal disposition; no implementation work remains
+for the accepted scope.
